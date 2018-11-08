@@ -22,7 +22,7 @@ object frm_ParametroList: Tfrm_ParametroList
   TextHeight = 14
   object htm_Status: THTMLabel
     Left = 5
-    Top = 501
+    Top = 502
     Width = 781
     Height = 25
     ColorTo = 11769496

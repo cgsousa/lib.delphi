@@ -76,6 +76,7 @@ begin
     if CMsgDlg.Confirm('Deseja alterar o valor do parametro?')then
     begin
         P :=m_params.Items[vst_Grid1.IndexItem];
+
 //        if(P.Catego ='NFE')and(Pos('forma_emissao', P.Ident)>0) then
 //        begin
 //            P.ComboBox.Clear ;
@@ -230,7 +231,7 @@ begin
     end;
 
     doParamNFE ;
-
+    RegSistem.Load ;
 
     L :=TCParametroList.getCatList ;
     for P in L do

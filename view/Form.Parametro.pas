@@ -41,6 +41,7 @@ type
   private
     { Private declarations }
     m_param: TCParametro ;
+
   protected
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
   public
@@ -69,10 +70,12 @@ begin
     case m_param.ValTyp of
         ftSmallint,ftInteger,ftWord,ftAutoInc,
         ftFloat,ftCurrency: m_param.xValor :=edt_ValXXX.Text ;
+        ftBoolean: m_param.xValor :=IntToStr(cbx_ValXXX.ItemIndex);
         ftArray: m_param.xValor :=IntToStr(cbx_ValXXX.ItemIndex);
     else
         m_param.xValor :=txt_ValStr.Lines.Text ;
     end;
+
     m_param.Descricao :=txt_Descricao.Lines.Text ;
     m_param.Save ;
     ModalResult :=mrOk ;
@@ -146,6 +149,7 @@ begin
         end
     else
         edt_ValXXX.Visible :=False;
+        cbx_ValXXX.Visible :=False ;
         txt_ValStr.Visible :=True ;
         txt_ValStr.Lines.Add(m_param.ReadStr() );
         //txt_ValStr.RefreshMemo ;

@@ -328,26 +328,6 @@ type
 //  end;
 
 
-{type
-  TCGenSerial = class
-  private
-    m_oSP: TADOStoredProc ;
-    class var _instance: TCGenSerial;
-  public
-    constructor Create ;
-    class function getInstance: TCGenSerial; static;
-    procedure SetVal(const ser_ident: string;
-      const ser_inival: Int32 = 1;
-      const ser_incval: Int32 = 1;
-      const ser_minval: Int32 = 1;
-      const ser_maxval: Int32 = 0;
-      const ser_descri: string = '');
-    function NextVal(const ser_ident: string;
-      const read_only: Boolean = False): Int32;
-  end;
-}
-
-
 
 var
   ConnectionADO: ADODB.TADOConnection;
@@ -400,61 +380,6 @@ begin
     end;
 end;
 
-
-{ TCGenSerial
-
-constructor TCGenSerial.Create;
-begin
-    m_oSP :=TADOStoredProc.NewADOStoredProc('dbo.sp_nextval');
-    m_oSP.AddParamWithValue('@ser_ident', ftString, 'nenhum');
-    m_oSP.AddParamOut('@ser_outval', ftInteger);
-    m_oSP.AddParamWithValue('@read_only', ftSmallint, 0);
-end;
-
-class function TCGenSerial.getInstance: TCGenSerial;
-begin
-    if _instance = nil then
-    begin
-        _instance :=TCGenSerial.Create ;
-    end;
-    Result :=_instance;
-end;
-
-function TCGenSerial.NextVal(const ser_ident: string;
-  const read_only: Boolean): Int32;
-begin
-    try
-        m_oSP.Param('@ser_ident').Value :=ser_ident ;
-        m_oSP.Param('@read_only').Value :=Ord(read_only) ;
-        m_oSP.ExecProc ;
-        Result :=m_oSP.Param('@ser_outval').Value ;
-    except
-        Result :=0;
-    end;
-end;
-
-procedure TCGenSerial.SetVal(const ser_ident: string;
-  const ser_inival, ser_incval, ser_minval, ser_maxval: Int32;
-  const ser_descri: string);
-var
-  sp: TADOStoredProc ;
-begin
-    sp :=TADOStoredProc.NewADOStoredProc('dbo.sp_setval');
-    try
-        sp.AddParamWithValue('@ser_ident', ftString, ser_ident);
-        sp.AddParamWithValue('@ser_inival', ftInteger, ser_inival);
-        sp.AddParamWithValue('@ser_incval', ftInteger, ser_incval);
-        sp.AddParamWithValue('@ser_minval', ftInteger, ser_minval);
-        sp.AddParamWithValue('@ser_maxval', ftInteger, ser_maxval);
-        if Length(ser_descri) > 0 then
-            sp.AddParamWithValue('@ser_descri', ftString, ser_descri)
-        else
-            sp.AddParamWithValue('@ser_descri', ftString, ' ');
-        sp.ExecProc ;
-    finally
-        sp.Free ;
-    end;
-end;}
 
 { TADOConnection
 

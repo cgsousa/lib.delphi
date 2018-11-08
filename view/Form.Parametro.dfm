@@ -114,7 +114,7 @@ object frm_Parametro: Tfrm_Parametro
     TabOrder = 1
     object txt_ValStr: TJvMemo
       Left = 48
-      Top = 18
+      Top = 20
       Width = 529
       Height = 55
       Cursor = crIBeam
@@ -184,7 +184,7 @@ object frm_Parametro: Tfrm_Parametro
     TabOrder = 2
     object txt_Descricao: TJvMemo
       Left = 48
-      Top = 18
+      Top = 20
       Width = 529
       Height = 71
       Cursor = crIBeam

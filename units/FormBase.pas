@@ -16,40 +16,6 @@ uses
 //	Generics.Collections	;
 
 
-{$REGION 'TCMsgDlg'}
-//type
-//  TCMsgDlg = class
-//  private
-//    class function BaseMsg(const Msg: string; const DlgType: TMsgDlgType;
-//      const Buttons: TMsgDlgButtons;
-//      const DefaultButton: TMsgDlgBtn;
-//      const HelpCtx: Longint = 0;
-//      const HelpFileName: string = '';
-//      const X: Integer = -1;
-//      const Y: Integer = -1): Integer;
-//    class function TaskMsg(const Instruction, Msg: string;
-//      const DlgType: TMsgDlgType;
-//      const Buttons: TMsgDlgButtons;
-//      const DefaultButton: TMsgDlgBtn;
-//      const HelpCtx: Longint = 0;
-//      const HelpFileName: string = '';
-//      const X: Integer = -1;
-//      const Y: Integer = -1): Integer;
-//  public
-//    class function Info(const AMsg: string): Boolean ; overload;
-//    class function Info(const AMsg: string;
-//      Args: array of const): Boolean ; overload;
-//    class function Confirm(const AMsg: string): Boolean ; overload;
-//    class function Confirm(const AMsg: string;
-//      Args: array of const): Boolean ; overload;
-//    class function Warning(const AMsg: string;
-//      const AConfirm: Boolean = False): Boolean ;
-//    class function Error(const AMsg: string): Boolean ;
-//  end;
-
-{$ENDREGION}
-
-
 {$REGION 'Extenções/class helpers'}
 type
   TFormatEditMask = (femCPF, femCNPJ, femCEP, femCustom, femNone) ;
@@ -413,13 +379,16 @@ begin
         FStatus.BringToFront ;
         FStatus.Show ;
         FStatus.Repaint;
-        if Screen.Cursor <> crDefault then
+        if Screen.Cursor <> aCursor then
         begin
             Screen.Cursor :=aCursor ;
         end;
     end
     else begin
-        Screen.Cursor :=crDefault ;
+        if Screen.Cursor <> crDefault then
+        begin
+            Screen.Cursor :=crDefault ;
+        end;
         FStatus.SendToBack ;
     end;
 end;
@@ -607,209 +576,6 @@ begin
 
 end;
 
-
-
-{ TMsgDlg
-
-class function TCMsgDlg.BaseMsg(const Msg: string; const DlgType: TMsgDlgType;
-  const Buttons: TMsgDlgButtons; const DefaultButton: TMsgDlgBtn;
-  const HelpCtx: Integer; const HelpFileName: string; const X,
-  Y: Integer): Integer;
-var
-  BkpFontSize: Integer ;
-var
-  F: TForm ;
-  B: TButton;
-begin
-    //MessageDlg()
-    BkpFontSize :=Screen.MessageFont.Size ;
-    Screen.MessageFont.Size :=BASE_FONT;
-    F :=CreateMessageDialog(Msg, DlgType, Buttons) ;
-    try
-
-      F.HelpContext :=HelpCtx;
-      F.HelpFile := HelpFileName;
-      if X >= 0 then F.Left := X;
-      if Y >= 0 then F.Top := Y;
-      if (Y < 0) and (X < 0) then F.Position := poScreenCenter;
-
-      if DlgType <> mtCustom then
-        F.Caption := Captions[DlgType]
-      else
-        F.Caption := Application.Title;
-
-      //Button.SIM
-      B :=TButton(F.FindComponent('YES')) ;
-      if B<>nil then
-      begin
-        B.Caption :=ButtonCaptions[mbYes] ;
-      end;
-      //Button.NÃO
-      B :=TButton(F.FindComponent('NO')) ;
-      if B<>nil then
-      begin
-        B.Caption :=ButtonCaptions[mbNo] ;
-      end;
-      //Button.CANCELAR
-      B :=TButton(F.FindComponent('CANCEL')) ;
-      if B<>nil then
-      begin
-        B.Caption :=ButtonCaptions[mbCancel] ;
-      end;
-      //Button.ABORTAR
-      B :=TButton(F.FindComponent('ABORT')) ;
-      if B<>nil then
-      begin
-        B.Caption :=ButtonCaptions[mbAbort] ;
-      end;
-      //Button.REPETIR
-      B :=TButton(F.FindComponent('RETRY')) ;
-      if B<>nil then
-      begin
-        B.Caption :=ButtonCaptions[mbRetry] ;
-      end;
-      //Button.IGNORAR
-      B :=TButton(F.FindComponent('IGNORE')) ;
-      if B<>nil then
-      begin
-        B.Caption :=ButtonCaptions[mbIgnore] ;
-      end;
-      //Button.TODOS
-      B :=TButton(F.FindComponent('ALL')) ;
-      if B<>nil then
-      begin
-        B.Caption :=ButtonCaptions[mbAll] ;
-      end;
-      //Button.AJUDA
-      B :=TButton(F.FindComponent('HELP')) ;
-      if B<>nil then
-      begin
-        B.Caption :=ButtonCaptions[mbHelp] ;
-      end;
-
-      Result :=F.ShowModal ;
-
-    finally
-      F.Free ;
-      Screen.MessageFont.Size :=BkpFontSize ;
-    end;
-end;
-
-class function TCMsgDlg.Confirm(const AMsg: string): Boolean;
-begin
-    if TOSVersion.Check(6) and UseLatestCommonDialogs and
-       StyleServices.Enabled and StyleServices.IsSystemStyle then
-      Result :=TaskMsg('', AMsg, mtConfirmation, [mbYes,mbNo], mbNo)=mrYes
-    else
-      Result :=BaseMsg(AMsg, mtConfirmation, [mbYes,mbNo], mbNo)=mrYes;
-end;
-
-class function TCMsgDlg.Confirm(const AMsg: string;
-  Args: array of const): Boolean;
-begin
-    Result :=Confirm(Format(AMsg, Args)) ;
-
-end;
-
-
-class function TCMsgDlg.Error(const AMsg: string): Boolean;
-begin
-    if TOSVersion.Check(6) and UseLatestCommonDialogs and
-       StyleServices.Enabled and StyleServices.IsSystemStyle then
-      Result :=TaskMsg('', AMsg, mtError, [mbOK], mbOK)=mrOk
-    else
-      Result :=BaseMsg(AMsg, mtError, [mbOK], mbOK)=mrOk;
-end;
-
-class function TCMsgDlg.Info(const AMsg: string): Boolean;
-begin
-    if TOSVersion.Check(6) and UseLatestCommonDialogs and
-       StyleServices.Enabled and StyleServices.IsSystemStyle then
-      Result :=TaskMsg('', AMsg, mtInformation, [mbOK], mbOK)=mrOk
-    else
-      Result :=BaseMsg(AMsg, mtInformation, [mbOK], mbOK)=mrOk;
-end;
-
-class function TCMsgDlg.Info(const AMsg: string; Args: array of const): Boolean;
-begin
-    Result :=Info(Format(AMsg, Args)) ;
-
-end;
-
-class function TCMsgDlg.TaskMsg(const Instruction, Msg: string;
-  const DlgType: TMsgDlgType; const Buttons: TMsgDlgButtons;
-  const DefaultButton: TMsgDlgBtn; const HelpCtx: Integer;
-  const HelpFileName: string; const X, Y: Integer): Integer;
-const
-  IconMap: array[TMsgDlgType] of TTaskDialogIcon = (tdiWarning, tdiError,
-    tdiInformation, tdiInformation, tdiNone);
-  LModalResults: array[TMsgDlgBtn] of Integer = (mrYes, mrNo, mrOk, mrCancel,
-    mrAbort, mrRetry, mrIgnore, mrAll, mrNoToAll, mrYesToAll, tdbHelp, mrClose);
-var
-  DlgBtn: TMsgDlgBtn;
-  LTaskDialog: TTaskMessageDialog;
-begin
-    Application.ModalStarted;
-    LTaskDialog :=TTaskMessageDialog.Create(nil);
-    try
-      // Assign buttons
-      for DlgBtn := Low(TMsgDlgBtn) to High(TMsgDlgBtn) do
-        if DlgBtn in Buttons then
-          with LTaskDialog.Buttons.Add do
-          begin
-            Caption := ButtonCaptions[DlgBtn];
-            if DlgBtn = DefaultButton then
-              Default := True;
-            ModalResult := LModalResults[DlgBtn];
-          end;
-
-      // Set dialog properties
-      with LTaskDialog do
-      begin
-        if DlgType <> mtCustom then
-          Caption := Captions[DlgType]
-        else
-          Caption := Application.Title;
-        CommonButtons := [];
-        if Application.UseRightToLeftReading then
-          Flags := Flags + [tfRtlLayout];
-        HelpContext :=HelpCtx;
-        HelpFile := HelpFileName;
-        MainIcon :=  IconMap[DlgType];
-        Position := Point(X, Y);
-        Text := Msg;
-        Title := Instruction;
-      end;
-
-      // Show dialog and return result
-      Result := mrNone;
-      if LTaskDialog.Execute then
-        Result := LTaskDialog.ModalResult;
-    finally
-      LTaskDialog.Free;
-      Application.ModalFinished;
-    end;
-end;
-
-class function TCMsgDlg.Warning(const AMsg: string;
-  const AConfirm: Boolean): Boolean;
-begin
-    if TOSVersion.Check(6) and UseLatestCommonDialogs and
-       StyleServices.Enabled and StyleServices.IsSystemStyle then
-    begin
-      if AConfirm then
-        Result :=TaskMsg('', AMsg, mtWarning, [mbOK,mbCancel], mbCancel)=mrOk
-      else
-        Result :=TaskMsg('', AMsg, mtWarning, [mbOK], mbOK)=mrOk;
-    end
-    else begin
-      if AConfirm then
-        Result :=BaseMsg(AMsg, mtWarning, [mbOK,mbCancel], mbCancel)=mrOk
-      else
-        Result :=BaseMsg(AMsg, mtWarning, [mbOK], mbOK)=mrOk ;
-    end;
-end;
-}
 
 
 { TCPanelStatus }

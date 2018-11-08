@@ -50,8 +50,27 @@ type
     class function getCatList: TCParametroList ;
   end;
 
-//var
+  //
+  // params system
+  TRegSistem = record
+  public
+    //
+    // servidor smtp
+    smtp_serv: TPair<string, string>;
+    smtp_port: TPair<string, Word>;
+    smtp_usr: TPair<string, string>;
+    smtp_pwd: TPair<string, string>;
+    smtp_ssl: TPair<string, Boolean>;
+    smtp_tls: TPair<string, Boolean>;
+    procedure Load() ;
+  end;
+
+
+  //var
 //  PARAM_BOO_SN: array[Boolean] of string = ('NÃO','SIM');
+
+var
+  RegSistem: TRegSistem ;
 
 
 implementation
@@ -438,5 +457,117 @@ begin
 end;
 
 
+
+{ TRegSistem }
+
+procedure TRegSistem.Load;
+const
+  SYS_CATEGO = 'SISTEMA' ;
+var
+  params: TCParametroList ;
+  p: TCParametro ;
+begin
+    //
+    //
+    params :=TCParametroList.Create ;
+    try
+        //
+        // carrega parametros do sistema
+        params.Load('', SYS_CATEGO) ;
+
+        //
+        // servidor smtp
+        smtp_serv.Key :='smtp_serv';
+        p :=params.IndexOf(smtp_serv.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(smtp_serv.Key) ;
+            p.ValTyp :=ftString ;
+            P.xValor :='smtp.gmail.com';
+            P.Catego :='SISTEMA';
+            p.Descricao :='Servidor SMTP';
+            P.Save ;
+        end;
+        smtp_serv.Value :=p.ReadStr() ;
+
+        //
+        // porta smtp
+        smtp_port.Key :='smtp_port';
+        p :=params.IndexOf(smtp_port.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(smtp_port.Key) ;
+            p.ValTyp :=ftInteger ;
+            P.xValor :='587'; //'465';
+            P.Catego :='SISTEMA';
+            p.Descricao :='Porta do servidor SMTP';
+            P.Save ;
+        end;
+        smtp_port.Value :=p.ReadInt() ;
+
+        //
+        // user smtp
+        smtp_usr.Key :='smtp_usr';
+        p :=params.IndexOf(smtp_usr.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(smtp_usr.Key) ;
+            p.ValTyp :=ftString ;
+            P.xValor :='rodrigo@atacsistemas.com';
+            P.Catego :='SISTEMA';
+            p.Descricao :='Usuario de login do servidor SMTP';
+            P.Save ;
+        end;
+        smtp_usr.Value :=p.ReadStr() ;
+
+        //
+        // pwd smtp
+        smtp_pwd.Key :='smtp_pwd';
+        p :=params.IndexOf(smtp_pwd.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(smtp_pwd.Key) ;
+            p.ValTyp :=ftString ;
+            P.xValor :='atac0412';
+            P.Catego :='SISTEMA';
+            p.Descricao :='Senha de login do servidor SMTP';
+            P.Save ;
+        end;
+        smtp_pwd.Value :=p.ReadStr() ;
+
+        //
+        // SSL
+        smtp_ssl.Key :='smtp_ssl';
+        p :=params.IndexOf(smtp_ssl.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(smtp_ssl.Key) ;
+            p.ValTyp :=ftBoolean ;
+            P.xValor :='0';
+            P.Catego :='SISTEMA';
+            p.Descricao :='Usa SSL';
+            P.Save ;
+        end;
+        smtp_ssl.Value :=p.ReadBoo() ;
+
+        //
+        // TLS
+        smtp_tls.Key :='smtp_tls';
+        p :=params.IndexOf(smtp_tls.Key) ;
+        if p = nil then
+        begin
+            p :=params.AddNew(smtp_tls.Key) ;
+            p.ValTyp :=ftBoolean ;
+            P.xValor :='1';
+            P.Catego :='SISTEMA';
+            p.Descricao :='Usa TLS';
+            P.Save ;
+        end;
+        smtp_tls.Value :=p.ReadBoo() ;
+
+    finally
+        params.Free ;
+    end;
+end;
 
 end.
