@@ -92,6 +92,9 @@ type
     constructor Create(AOwner: TComponent); override;
     procedure setStatus(const aCaption: string;
       const aCursor: TCursor =crDefault) ;
+
+    procedure ResetWContrls(aWCtrl: TWinControl; const aReadOnly: Boolean =false);
+
   public
     class procedure DoClearItems(WCtrl: TWinControl);
   end;
@@ -367,6 +370,30 @@ begin
 	FModified :=False ;
 end;
 
+
+procedure TBaseForm.ResetWContrls(aWCtrl: TWinControl;
+  const aReadOnly: Boolean);
+var
+	I: Integer ;
+	W: TWinControl;
+begin
+  if aWCtrl <> nil then
+  begin
+      for I :=0 to aWCtrl.ControlCount -1 do
+      begin
+          W :=TWinControl( aWCtrl.Controls[I] );
+          if W is TCustomEdit then
+          begin
+              TCustomEdit(W).Clear ;
+              TCustomEdit(W).ReadOnly :=aReadOnly ;
+          end
+          else if W is TCustomComboBox then
+          begin
+              TCustomComboBox(W).ItemIndex :=-1;
+          end
+      end;
+  end;
+end;
 
 procedure TBaseForm.setStatus(const aCaption: string;
   const aCursor: TCursor);

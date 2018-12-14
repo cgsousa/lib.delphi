@@ -41,7 +41,7 @@ type
     property Descricao: string read _descri write _descri;
   end;
 
-  TCParametroList = class (TList<TCParametro>)
+  TCParametroList = class (TObjectList<TCParametro>)
   private
   public
     function AddNew(const AParamName: string): TCParametro ;
