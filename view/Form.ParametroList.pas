@@ -230,7 +230,7 @@ begin
         m_params.Load('', '') ;
     end;
 
-    doParamNFE ;
+//    doParamNFE ;
     RegSistem.Load ;
 
     L :=TCParametroList.getCatList ;
