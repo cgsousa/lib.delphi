@@ -68,17 +68,14 @@ type
   TCThreadProcess = class(TThread)
   private
     m_SecBetweenRuns: Int32;
-    m_OnIniProc: TNotifyEvent;
-    m_OnEndProc: TNotifyEvent;
-    //m_RunProc: TThreadProcedure ;
-    procedure IniProc;
-    procedure EndProc;
+    m_OnBeforeExecute: TNotifyEvent;
+    procedure CallOnBeforeExecute;
   protected
     procedure Execute; override;
     procedure RunProc; virtual ;
+    procedure DoBeforeExecute; virtual;
   public
-    property OnIniProc: TNotifyEvent read m_OnIniProc write m_OnIniProc;
-    property OnEndProc: TNotifyEvent read m_OnEndProc write m_OnEndProc;
+    property OnBeforeExecute: TNotifyEvent read m_OnBeforeExecute write m_OnBeforeExecute;
     property SecBetweenRuns: Int32 read m_SecBetweenRuns write m_SecBetweenRuns;
     constructor Create(const aCreateSuspended: Boolean;
       const aFreeOnTerminate: Boolean = False); reintroduce;
@@ -229,6 +226,11 @@ end;
 
 { TCThreadProcess }
 
+procedure TCThreadProcess.CallOnBeforeExecute;
+begin
+    if Assigned(m_OnBeforeExecute) then m_OnBeforeExecute(Self);
+end;
+
 constructor TCThreadProcess.Create(const aCreateSuspended,
   aFreeOnTerminate: Boolean);
 begin
@@ -237,12 +239,9 @@ begin
     m_SecBetweenRuns :=10;
 end;
 
-procedure TCThreadProcess.EndProc;
+procedure TCThreadProcess.DoBeforeExecute;
 begin
-    if Assigned(m_OnEndProc) then
-    begin
-        Self.m_OnEndProc(Self) ;
-    end;
+    if Assigned(m_OnBeforeExecute) then Synchronize(CallOnBeforeExecute);
 end;
 
 procedure TCThreadProcess.Execute;
@@ -251,10 +250,10 @@ var
 begin
     //
     // inicio
-    // sincroniza o método Form.OnINI
-    if Assigned(Self.m_OnIniProc) then
+    // sincroniza o method do Form, como incicio de tarefa
+    if Assigned(m_OnBeforeExecute) then
     begin
-        Synchronize(Self, Self.IniProc);
+        Synchronize(CallOnBeforeExecute);
     end;
 
     Count :=0;
@@ -277,23 +276,6 @@ begin
 
 //        end;
         Sleep(1000);
-    end;
-
-    //
-    // fim
-    // sincroniza o método Form.OnEND
-    if Assigned(Self.m_OnEndProc) then
-    begin
-        Synchronize(Self, Self.EndProc);
-    end;
-end;
-
-
-procedure TCThreadProcess.IniProc;
-begin
-    if Assigned(m_OnIniProc) then
-    begin
-        Self.m_OnIniProc(Self) ;
     end;
 end;
 
