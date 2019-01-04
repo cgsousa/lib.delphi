@@ -69,14 +69,21 @@ type
   private
     m_SecBetweenRuns: Int32;
     m_OnBeforeExecute: TNotifyEvent;
-    procedure CallOnBeforeExecute;
+    m_OnStrProc: TGetStrProc;
   protected
     procedure Execute; override;
     procedure RunProc; virtual ;
-    procedure DoBeforeExecute; virtual;
+    procedure CallOnBeforeExecute;
+    procedure CallOnStrProc(const aStr: string); overload ;
+    procedure CallOnStrProc(const aStr: string; const args: array of const); overload ;
   public
-    property OnBeforeExecute: TNotifyEvent read m_OnBeforeExecute write m_OnBeforeExecute;
     property SecBetweenRuns: Int32 read m_SecBetweenRuns write m_SecBetweenRuns;
+    property OnBeforeExecute: TNotifyEvent
+        read m_OnBeforeExecute
+        write m_OnBeforeExecute;
+    property OnStrProc: TGetStrProc
+        read m_OnStrProc
+        write m_OnStrProc;
     constructor Create(const aCreateSuspended: Boolean;
       const aFreeOnTerminate: Boolean = False); reintroduce;
   end;
@@ -228,7 +235,49 @@ end;
 
 procedure TCThreadProcess.CallOnBeforeExecute;
 begin
-    if Assigned(m_OnBeforeExecute) then m_OnBeforeExecute(Self);
+    if GetCurrentThreadId = MainThreadID then
+    begin
+        if Assigned(m_OnBeforeExecute) then m_OnBeforeExecute(Self);
+    end
+    else begin
+        Synchronize(CallOnBeforeExecute);
+    end;
+end;
+
+procedure TCThreadProcess.CallOnStrProc(const aStr: string);
+//
+// A mágica é que o método anônimo captura a variável aStr.
+// Assim, será totalmente seguro usar o Queue em vez de Synchronize aqui.
+begin
+    //
+    // Estou usando um pequeno truque aqui para garantir que o código crítico
+    // seja chamado dentro do thread da GUI sem ter um método separado. O ID do
+    // thread da GUI é armazenado em MainThreadID, portanto, apenas verifique
+    // se o resultado da função GetCurrentThreadID corresponde a esse valor e
+    // chame Synchronize caso contrário.
+    if GetCurrentThreadId = MainThreadID then
+    begin
+        if Assigned(m_OnStrProc) then
+            m_OnStrProc(aStr);
+    end
+    else begin
+        Synchronize(
+            procedure
+            begin
+                CallOnStrProc(aStr);
+            end);
+    end;
+    //
+    // Uma nota usando o Queue: quando o thread é liberado, todas as chamadas de
+    // Queue pendentes são removidas. Portanto, se o seu código depender de todas
+    // essas chamadas sendo tratadas no thread da GUI, você deve certificar-se
+    // de que a instância do thread tenha pelo menos esse tempo.
+end;
+
+procedure TCThreadProcess.CallOnStrProc(const aStr: string;
+  const args: array of const);
+begin
+    CallOnStrProc(Format(aStr, args));
 end;
 
 constructor TCThreadProcess.Create(const aCreateSuspended,
@@ -239,11 +288,6 @@ begin
     m_SecBetweenRuns :=10;
 end;
 
-procedure TCThreadProcess.DoBeforeExecute;
-begin
-    if Assigned(m_OnBeforeExecute) then Synchronize(CallOnBeforeExecute);
-end;
-
 procedure TCThreadProcess.Execute;
 var
   Count: Integer;
@@ -251,10 +295,7 @@ begin
     //
     // inicio
     // sincroniza o method do Form, como incicio de tarefa
-    if Assigned(m_OnBeforeExecute) then
-    begin
-        Synchronize(CallOnBeforeExecute);
-    end;
+    CallOnBeforeExecute;
 
     Count :=0;
 
@@ -283,7 +324,5 @@ procedure TCThreadProcess.RunProc;
 begin
 
 end;
-
-
 
 end.
