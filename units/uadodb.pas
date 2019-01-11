@@ -140,11 +140,10 @@ type
     class var FInstance: TCEmpresa;
     class function GetInstance: TCEmpresa; static;
   private
+    m_DateServ: TDateTime ;
     IniFileName: string ;
-    _AtivaNumeracao: Boolean;
-    procedure DoIniLoad() ;
+    procedure DoIniLoad();
   public
-//    constructor Create ;
     class property Instance : TCEmpresa read GetInstance;
     class function UnFormatCNPJ(const Doc: string): string;
     class function UnFormatIE(const Doc: string): string;
@@ -167,7 +166,7 @@ type
     CodCta: SmallInt ;
     Logo: TStream;
   public
-    property AtivaNumeracao: Boolean read _AtivaNumeracao write _AtivaNumeracao;
+    property DateServ: TDateTime read m_DateServ;
     procedure DoLoad(const codfil: SmallInt);
     procedure DoIniSave() ;
   end;
@@ -605,9 +604,9 @@ begin
 
     Q :=TADOQuery.NewADOQuery();
     try
-      Q.AddCmd('declare @codfil smallint; set @codfil = %d;',[codfil]);
+      Q.AddCmd('declare @codfil smallint; set @codfil=%d;',[codfil]);
 
-      Q.AddCmd('select                                   ');
+      Q.AddCmd('select getdate() as dt_syst ,            ');
       Q.AddCmd('  f.codloja as fil_codigo,               ');
       Q.AddCmd('  f.cnpj as fil_cnpj ,                   ');
       Q.AddCmd('  f.nomefantasia as fil_xxfant,          ');
@@ -624,9 +623,10 @@ begin
       Q.AddCmd('  f.logomarca as fil_logo,               ');
       Q.AddCmd('  f.codconta as fil_codcta               ');
       Q.AddCmd('from loja f                              ');
+      Q.AddCmd('where f.codloja =@codfil                 ');
 
       Q.Open;
-
+      Self.m_DateServ :=Q.Field('dt_syst').AsDateTime;
       Self.codfil:=Q.Field('fil_codigo').AsInteger;
       Self.CNPJ  :=TCEmpresa.UnFormatCNPJ(Q.Field('fil_cnpj').AsString) ;
       Self.xFant :=Q.Field('fil_xxfant').AsString;
@@ -669,24 +669,6 @@ begin
     end
     else
         Self.Logo :=nil;
-
-    //inicializa serie /cnpj
-    {if Self.AtivaNumeracao and (Self.CNPJ <> '') then
-    begin
-        //serie unica
-        TCGenSerial.getInstance.SetVal(Format('nfe.%s.nserie.000',[Self.CNPJ]),
-                                    1, 1, 1, 999999999,
-                                    'Contador de doc. fiscal(NFE) por serie unica no cnpj');
-        //serie normal
-//        TCGenSerial.getInstance.SetVal(Format('nfe.%s.nserie',[Self.CNPJ]),
-//                                    1, 1, 1, 799,
-//                                    'Contador de nserie por cnpj');
-
-        //serial para cod.ntf
-//        TCGenSerial.getInstance.SetVal(Format('nfe.codntf'),
-//                                    1, 1, 1, 0,
-//                                    'Identificador unico para cod. sequencial da nota fiscal');
-    end;}
 
 end;
 

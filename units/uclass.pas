@@ -77,6 +77,7 @@ type
     procedure CallOnStrProc(const aStr: string); overload ;
     procedure CallOnStrProc(const aStr: string; const args: array of const); overload ;
   public
+    property Terminated;
     property SecBetweenRuns: Int32 read m_SecBetweenRuns write m_SecBetweenRuns;
     property OnBeforeExecute: TNotifyEvent
         read m_OnBeforeExecute
