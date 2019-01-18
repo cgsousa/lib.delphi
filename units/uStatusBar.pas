@@ -11,6 +11,10 @@ uses ComCtrls
   ;
 
 type
+  {.$IFDEF TMSPACK}
+  {.$ESLE}
+  {.$ENDIF}
+
   TCStatusBarWidget = class
   private
     const ID_CONFIG =0;
@@ -45,6 +49,10 @@ type
     property Commit: string read m_Commit write m_Commit;
     property DeleteItem: string read m_Delete write m_Delete;
     property Status: string read m_Status write setStatus;
+    function AddPanel(
+      const aStyle: {$IFDEF TMSPACK}TAdvOfficeStatusPanelStyle{$ELSE}TStatusPanelStyle{$ENDIF};
+      const aWidth: Word =0
+      ): {$IFDEF TMSPACK}TAdvOfficeStatusPanel{$ELSE}TStatusPanel{$ENDIF};
   end;
 
 implementation
@@ -52,9 +60,19 @@ implementation
 
 { TCStatusBarWidget }
 
+function TCStatusBarWidget.AddPanel(
+  const aStyle: {$IFDEF TMSPACK}TAdvOfficeStatusPanelStyle{$ELSE}TStatusPanelStyle{$ENDIF};
+  const aWidth: Word
+  ): {$IFDEF TMSPACK}TAdvOfficeStatusPanel{$ELSE}TStatusPanel{$ENDIF};
+begin
+    Result :=m_Origin.Panels.Add ;
+    Result.Style:=aStyle;
+    if aWidth > 0 then
+        Result.Width:=aWidth;
+end;
+
 procedure TCStatusBarWidget.AddPanels;
 begin
-    m_Origin.Panels.Clear ;
     with m_Origin.Panels.Add do
     begin
         Text :='Ctrl+F1=Configurações';
@@ -99,7 +117,8 @@ begin
     m_Origin.SimplePanel :=aSimple ;
     if not m_Origin.SimplePanel then
     begin
-        AddPanels ;
+        m_Origin.Panels.Clear ;
+        //AddPanels ;
     end;
 end;
 
