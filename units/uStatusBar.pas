@@ -4,7 +4,7 @@ interface
 
 {$I TMSDEFS.INC}
 
-uses ComCtrls
+uses Classes, ComCtrls
   {$IFDEF TMSPACK}
   ,AdvOfficeStatusBar, AdvOfficeStatusBarStylers
   {$ENDIF}
@@ -51,7 +51,9 @@ type
     property Status: string read m_Status write setStatus;
     function AddPanel(
       const aStyle: {$IFDEF TMSPACK}TAdvOfficeStatusPanelStyle{$ELSE}TStatusPanelStyle{$ENDIF};
-      const aWidth: Word =0
+      const aCaption: string ='';
+      const aWidth: Word =0 ;
+      const aJustif: TAlignment =taLeftJustify
       ): {$IFDEF TMSPACK}TAdvOfficeStatusPanel{$ELSE}TStatusPanel{$ENDIF};
   end;
 
@@ -62,11 +64,15 @@ implementation
 
 function TCStatusBarWidget.AddPanel(
   const aStyle: {$IFDEF TMSPACK}TAdvOfficeStatusPanelStyle{$ELSE}TStatusPanelStyle{$ENDIF};
-  const aWidth: Word
+  const aCaption: string;
+  const aWidth: Word ;
+  const aJustif: TAlignment
   ): {$IFDEF TMSPACK}TAdvOfficeStatusPanel{$ELSE}TStatusPanel{$ENDIF};
 begin
     Result :=m_Origin.Panels.Add ;
+    Result.Alignment :=aJustif ;
     Result.Style:=aStyle;
+    Result.Text:=aCaption;
     if aWidth > 0 then
         Result.Width:=aWidth;
 end;

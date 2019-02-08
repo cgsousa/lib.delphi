@@ -15,6 +15,8 @@ uses
 
 type
   TOnStatus = procedure(Sender: TObject; Status: string) of object;
+  TGetIntProc = procedure(const I: Int64) of object;
+  TGetBooProc = procedure(const B: Boolean) of object;
 
 //type
 //  TCProcedure = procedure of object;
@@ -70,12 +72,15 @@ type
     m_SecBetweenRuns: Int32;
     m_OnBeforeExecute: TNotifyEvent;
     m_OnStrProc: TGetStrProc;
+    m_OnIntProc: TGetIntProc;
   protected
+    m_Interval: Cardinal ;
     procedure Execute; override;
     procedure RunProc; virtual ;
     procedure CallOnBeforeExecute;
     procedure CallOnStrProc(const aStr: string); overload ;
     procedure CallOnStrProc(const aStr: string; const args: array of const); overload ;
+    procedure CallOnIntProc(const aInt: Int64);
   public
     property Terminated;
     property SecBetweenRuns: Int32 read m_SecBetweenRuns write m_SecBetweenRuns;
@@ -85,6 +90,9 @@ type
     property OnStrProc: TGetStrProc
         read m_OnStrProc
         write m_OnStrProc;
+    property OnIntProc: TGetIntProc
+        read m_OnIntProc
+        write m_OnIntProc;
     constructor Create(const aCreateSuspended: Boolean;
       const aFreeOnTerminate: Boolean = False); reintroduce;
   end;
@@ -275,6 +283,22 @@ begin
     // de que a instância do thread tenha pelo menos esse tempo.
 end;
 
+procedure TCThreadProcess.CallOnIntProc(const aInt: Int64);
+begin
+    if GetCurrentThreadId = MainThreadID then
+    begin
+        if Assigned(m_OnIntProc) then
+            m_OnIntProc(aInt);
+    end
+    else begin
+        Synchronize(
+            procedure
+            begin
+                CallOnIntProc(aInt);
+            end);
+    end;
+end;
+
 procedure TCThreadProcess.CallOnStrProc(const aStr: string;
   const args: array of const);
 begin
@@ -299,6 +323,7 @@ begin
     CallOnBeforeExecute;
 
     Count :=0;
+    m_Interval :=0 ;
 
     //exec
     while not Terminated do  // loop around until we should stop
@@ -318,6 +343,7 @@ begin
 
 //        end;
         Sleep(1000);
+        Inc(m_Interval) ;
     end;
 end;
 
