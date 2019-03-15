@@ -65,19 +65,37 @@ type
   end;
 
 
-  { TCThreadProc melhorada }
-  //PThreadMethod =^TThreadMethod;
+  { TThread melhorada }
   TCThreadProcess = class(TThread)
   private
     m_SecBetweenRuns: Int32;
+    //
+    // pointer da view (form) que indica o inicio da Thread
+    // utilizado para trava de alguns controles
+    // nota: todos os controles travados aqui, deve ser liberado em OnTerminate
     m_OnBeforeExecute: TNotifyEvent;
+    //
+    // pointer da view (form) que substitui o method Execute
+    // pode ser apontado de varios locais
+    m_OnExecute: TNotifyEvent;
+    //
+    // pointer da view (form) que recebe uma string
+    // pode ser usado para amostra de status
     m_OnStrProc: TGetStrProc;
+    //
+    // pointer da view (form) que recebe um Int64
+    // pode ser usado para amostra em ProgressBar
     m_OnIntProc: TGetIntProc;
   protected
     m_Interval: Cardinal ;
     procedure Execute; override;
+    //
+    // procedure ligado ao method Execute
     procedure RunProc; virtual ;
+    //
+    // procedure que indica o inicio da Thread
     procedure CallOnBeforeExecute;
+    procedure CallOnExecute;
     procedure CallOnStrProc(const aStr: string); overload ;
     procedure CallOnStrProc(const aStr: string; const args: array of const); overload ;
     procedure CallOnIntProc(const aInt: Int64);
@@ -87,6 +105,9 @@ type
     property OnBeforeExecute: TNotifyEvent
         read m_OnBeforeExecute
         write m_OnBeforeExecute;
+    property OnExecute: TNotifyEvent
+      read m_OnExecute
+      write m_OnExecute;
     property OnStrProc: TGetStrProc
         read m_OnStrProc
         write m_OnStrProc;
@@ -283,6 +304,17 @@ begin
     // de que a instância do thread tenha pelo menos esse tempo.
 end;
 
+procedure TCThreadProcess.CallOnExecute;
+begin
+    if GetCurrentThreadId = MainThreadID then
+    begin
+        if Assigned(m_OnExecute) then m_OnExecute(Self);
+    end
+    else begin
+        Synchronize(CallOnExecute);
+    end;
+end;
+
 procedure TCThreadProcess.CallOnIntProc(const aInt: Int64);
 begin
     if GetCurrentThreadId = MainThreadID then
@@ -319,31 +351,39 @@ var
 begin
     //
     // inicio
-    // sincroniza o method do Form, como incicio de tarefa
+    // sincroniza o method da view (form), como inicio de tarefa
     CallOnBeforeExecute;
 
     Count :=0;
     m_Interval :=0 ;
 
-    //exec
-    while not Terminated do  // loop around until we should stop
+    //
+    // desvio
+    if Assigned(m_OnExecute) then
     begin
-        Inc(Count);
-//        if Count >= SecBetweenRuns then
-//        begin
-//            Count :=0;
+        CallOnExecute ;
+    end
+    else begin
+        //exec
+        while not Terminated do  // loop around until we should stop
+        begin
+            Inc(Count);
+    //        if Count >= SecBetweenRuns then
+    //        begin
+    //            Count :=0;
 
-            { place your service code here }
-            { this is where the action happens }
-            {if Assigned(Self.m_RunProc) then
-            begin
-                Self.m_RunProc() ;
-            end;}
-            Self.RunProc ;
+                { place your service code here }
+                { this is where the action happens }
+                {if Assigned(Self.m_RunProc) then
+                begin
+                    Self.m_RunProc() ;
+                end;}
+                Self.RunProc ;
 
-//        end;
-        Sleep(1000);
-        Inc(m_Interval) ;
+    //        end;
+            Sleep(1000);
+            Inc(m_Interval) ;
+        end;
     end;
 end;
 

@@ -397,10 +397,32 @@ end;
 
 procedure TBaseForm.setStatus(const aCaption: string;
   const aCursor: TCursor);
+var
+  L: TStrings ;
+  I: Integer;
+  S: string ;
 begin
-    FStatus.Caption :=aCaption ;
     if aCaption <> '' then
     begin
+        if Pos(#13, aCaption) > 0 then
+        begin
+            L :=TStringList.Create ;
+            L.Add(aCaption) ;
+            S :='';
+            for I :=0 to L.Count -1 do
+            begin
+                if Length(L.Strings[I]) > Length(S) then
+                    S:=L.Strings[I];
+            end;
+        end
+        else
+            S :=aCaption ;
+
+        if Canvas.TextWidth(S) > FStatus.Width then
+        begin
+            FStatus.Width :=Canvas.TextWidth(S) ;
+        end;
+        FStatus.Caption :=aCaption ;
         FStatus.Left :=(Self.Width -FStatus.Width) div  2 ;
         FStatus.Top :=(Self.Height -FStatus.Height) div  2;
         FStatus.BringToFront ;
@@ -412,6 +434,7 @@ begin
         end;
     end
     else begin
+        FStatus.Caption :='';
         if Screen.Cursor <> crDefault then
         begin
             Screen.Cursor :=crDefault ;

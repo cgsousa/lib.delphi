@@ -302,6 +302,13 @@ begin
             case p.ValTyp of
                 ftSmallint, ftInteger, ftWord: CellText :=P.xValor;
                 ftBoolean: CellText := FLAG_SN[P.ReadBoo];
+                ftAutoInc:if P.xValor <> '' then
+                          begin
+                              CellText :=P.xValor;
+                          end
+                          else begin
+                              CellText :='Ainda não utilizado';
+                          end;
                 //ftFloat,ftCurrency:
                 ftArray:
                 begin

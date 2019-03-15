@@ -326,7 +326,69 @@ type
 //    property SQL: TStrings read GetSQL write SetSQL;
 //  end;
 
+type
+  IGenSerial = interface
+    ['{168E21AE-F871-4F6E-B20A-EFDA38CDA9EE}']
+    function getIdent: string ;
+    property ident: string read getIdent ;
+    function getValue: Cardinal;
+    property Value: Cardinal read getValue;
+    function getIniVal: Cardinal;
+    property iniVal: Cardinal read getIniVal;
+    function getIncVal: Int32 ;
+    property incVal: Int32 read getIncVal;
+    function getMinVal: Int32 ;
+    property minVal: Int32 read getMinVal;
+    function getMaxVal: Cardinal;
+    property maxVal: Cardinal read getMaxVal;
+    function getDescri: string ;
+    property descri: string read getDescri ;
+    function getCatego: string ;
+    property catego: string read getCatego;
+    procedure setValue ;
+    function nextValue: Cardinal ;
+    function readValue: Boolean ;
+  end;
 
+  TCGenSerial = class(TInterfacedObject, IGenSerial)
+  private
+    m_ident: string ;
+    m_value: Cardinal;
+    m_inival: Cardinal;
+    m_incval: Int32 ;
+    m_minval: Int32 ;
+    m_maxval: Cardinal;
+    m_descri: string ;
+    m_catego: string ;
+    function getIdent: string ;
+    function getValue: Cardinal;
+    function getIniVal: Cardinal;
+    function getIncVal: Int32 ;
+    function getMinVal: Int32 ;
+    function getMaxVal: Cardinal;
+    function getDescri: string ;
+    function getCatego: string ;
+  public
+    property ident: string read getIdent ;
+    property Value: Cardinal read getValue;
+    property iniVal: Cardinal read getIniVal;
+    property incVal: Int32 read getIncVal;
+    property minVal: Int32 read getMinVal;
+    property maxVal: Cardinal read getMaxVal;
+    property descri: string read getDescri ;
+    property catego: string read getCatego;
+    procedure setValue ;
+    function nextValue: Cardinal ;
+    function readValue: Boolean ;
+    constructor Create(const aIdent, aDescri, aCatego: string ;
+      const aIniVal: Cardinal;
+      const aIncVal, aMinVal: Int32 ;
+      const aMaxVal: Cardinal); reintroduce ;
+    class function New(const aIdent, aDescri, aCatego: string ;
+      const aIniVal: Cardinal;
+      const aIncVal, aMinVal: Int32 ;
+      const aMaxVal: Cardinal): IGenSerial ;
+  end;
 
 var
   ConnectionADO: ADODB.TADOConnection;
@@ -1422,6 +1484,156 @@ begin
 
 end;
 
+
+{ TCGenSerial }
+
+constructor TCGenSerial.Create(const aIdent, aDescri, aCatego: string ;
+  const aIniVal: Cardinal; const aIncVal, aMinVal: Int32;
+  const aMaxVal: Cardinal);
+begin
+    inherited Create;
+    Self.m_ident :=aIdent ;
+    Self.m_inival:=aIniVal;
+    Self.m_incval:=aIncVal;
+    Self.m_minval:=aMinVal;
+    Self.m_maxval:=aMaxVal;
+    Self.m_descri:=aDescri;
+    Self.m_catego:=aCatego;
+end;
+
+function TCGenSerial.getCatego: string;
+begin
+    Result :=m_catego ;
+
+end;
+
+function TCGenSerial.getDescri: string;
+begin
+    Result :=m_descri ;
+
+end;
+
+function TCGenSerial.getIdent: string;
+begin
+    Result :=m_ident ;
+
+end;
+
+function TCGenSerial.getIncVal: Int32;
+begin
+    Result :=m_incval ;
+
+end;
+
+function TCGenSerial.getIniVal: Cardinal;
+begin
+    Result :=m_inival ;
+
+end;
+
+function TCGenSerial.getMaxVal: Cardinal;
+begin
+    Result :=m_maxval ;
+
+end;
+
+function TCGenSerial.getMinVal: Int32;
+begin
+    Result :=m_minval ;
+
+end;
+
+function TCGenSerial.getValue: Cardinal;
+begin
+    Result :=m_value ;
+
+end;
+
+class function TCGenSerial.New(const aIdent, aDescri, aCatego: string ;
+  const aIniVal: Cardinal; const aIncVal, aMinVal: Int32;
+  const aMaxVal: Cardinal): IGenSerial;
+begin
+    Result :=TCGenSerial.Create(aIdent, aDescri, aCatego,
+                                aIniVal, aIncVal,
+                                aMinVal, aMaxVal);
+end;
+
+function TCGenSerial.nextValue: Cardinal;
+var
+  sp: TADOStoredProc ;
+begin
+    sp :=TADOStoredProc.NewADOStoredProc('dbo.sp_nextval');
+    try
+        //
+        sp.AddParamWithValue('@ser_ident', ftString, Self.m_ident);
+        sp.AddParamOut('@ser_outval', ftInteger);
+        sp.AddParamWithValue('@read_only', ftSmallint, 0);
+
+        try
+            sp.ExecProc ;
+            Result :=sp.Param('@ser_outval').Value ;
+        except
+            Result :=0;
+        end;
+
+    finally
+        sp.Free ;
+    end;
+end;
+
+function TCGenSerial.readValue: Boolean;
+var
+  Q: TADOQuery ;
+begin
+    //
+    Q :=TADOQuery.NewADOQuery();
+    try
+      Q.AddCmd('declare @ser_id varchar(50); set @ser_id =%s;   ',[Q.FStr(Self.m_ident)]) ;
+      Q.AddCmd('select *from genserial where ser_ident =@ser_id ');
+      Q.Open ;
+      Result :=not Q.IsEmpty ;
+      if Result then
+      begin
+          m_ident :=Q.Field('ser_ident').AsString ;
+          m_value :=Q.Field('ser_valor').AsLargeInt;
+          m_inival :=Q.Field('ser_inival').AsInteger;
+          m_incval :=Q.Field('ser_incval').AsInteger;
+          m_minval :=Q.Field('ser_minval').AsInteger;
+          m_maxval :=Q.Field('ser_maxval').AsLargeInt;
+          m_descri :=Q.Field('ser_descri').AsString ;
+          m_catego :=Q.Field('ser_catego').AsString ;
+      end;
+    finally
+      Q.Free ;
+    end;
+end;
+
+procedure TCGenSerial.setValue;
+var
+  sp: TADOStoredProc ;
+begin
+    sp :=TADOStoredProc.NewADOStoredProc('dbo.sp_setval');
+    try
+        //
+        // chk se existe categoria
+        // coloca como prefixo no ID para compatibilizar com a sp
+        if Self.m_catego <> '' then
+            sp.AddParamWithValue('@ser_ident', ftString, Format('[%s]%s',[Self.m_catego,Self.m_ident]))
+        else
+            sp.AddParamWithValue('@ser_ident', ftString, Self.m_ident);
+        sp.AddParamWithValue('@ser_inival', ftInteger, Self.m_inival);
+        sp.AddParamWithValue('@ser_incval', ftInteger, Self.m_incval);
+        sp.AddParamWithValue('@ser_minval', ftInteger, Self.m_minval);
+        sp.AddParamWithValue('@ser_maxval', ftInteger, Self.m_maxval);
+        if Length(Self.m_descri) > 0 then
+            sp.AddParamWithValue('@ser_descri', ftString, Self.m_descri)
+        else
+            sp.AddParamWithValue('@ser_descri', ftString, ' ');
+        sp.ExecProc ;
+    finally
+        sp.Free ;
+    end;
+end;
 
 initialization
     ConnectionADO :=nil  ;

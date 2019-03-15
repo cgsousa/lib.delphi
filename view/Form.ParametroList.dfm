@@ -102,7 +102,7 @@ object frm_ParametroList: Tfrm_ParametroList
   end
   object vst_Grid1: TVirtualStringTree
     Left = 5
-    Top = 5
+    Top = 6
     Width = 781
     Height = 490
     Alignment = taCenter
