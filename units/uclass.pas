@@ -1,17 +1,79 @@
+{***
+* Synchronize and Queue with Parameters
+* Todos os direitos reservados
+* Autor: Carlos Gonzaga
+* Data: 11.03.2017
+********************************************************************************
+* Na classe TThread do Delphi, há um método Synchronize para chamar no contexto
+* do thread da GUI. Isso é necessário no caso, por exemplo, de você querer
+* atualizar uma barra de progresso ou um rótulo de status em um formulário,
+* porque a VCL não é thread-safe. Enquanto Synchronize é um método de bloqueio
+* (ou seja, o código de thread continua quando o thread da GUI terminou a chamada
+* do método), as versões recentes do Delphi introduziram um método de Queue sem
+* bloqueio.
+*
+* A desvantagem de usar Synchronize é que é muito difícil lidar com parâmetros
+* durante uma chamada desse tipo. A solução padrão é usar campos no descendente
+* TThread que mantêm os parâmetros durante a Sincronização, mas isso não funcionará
+* corretamente com o Queue. Como a Queue não está bloqueando, pode haver várias
+* chamadas à Queue esperando para serem processadas, o que geralmente não pode
+* compartilhar o mesmo campo. Pior, usar o acesso à Queue para esses campos também
+* precisa ser thread-safe. O encadeamento de Queues pode apenas definir esse campo
+* para a próxima chamada para Queue enquanto uma chamada de Queue anterior é
+* executada no encadeamento principal usando apenas esse campo. Como esse problema
+* não existe com o Synchronize, a mudança de Synchronize para Queue só precisa ser
+* feita com mais cuidado.
+*
+* Uma maneira de lidar com parâmetros para Synchronize é o uso de Métodos Anônimos.
+* Há uma versão sobrecarregada de Synchronize e Queue, tendo um TThreadProcedure
+* como parâmetro:
+*
+*   TThreadMethod = procedure of object;
+*   TThreadProcedure = reference to procedure;
+*   ...
+*   procedure Queue(AMethod: TThreadMethod); overload;
+*   procedure Synchronize(AMethod: TThreadMethod); overload;
+*   procedure Queue(AThreadProc: TThreadProcedure); overload;
+*   procedure Synchronize(AThreadProc: TThreadProcedure); overload;
+*
+* Um exemplo simples para uma chamada parametrizada de Synchronize esta nas
+* implementações do métodos:
+*
+*   procedure CallOnStrProc(const aStr: string); overload ;
+*   procedure CallOnIntProc(const aInt: Int64);
+*
+*}
 unit uclass;
+
+{*
+******************************************************************************
+|* PROPÓSITO: Registro de Alterações
+******************************************************************************
+
+Símbolo : Significado
+
+[+]     : Novo recurso
+[*]     : Recurso modificado/melhorado
+[-]     : Correção de Bug (assim esperamos)
+
+*}
 
 interface
 
 uses
-  Windows,
-  Messages,
   SysUtils,
-  Classes,
-//  Variants,
-  Dialogs,
-  SvcMgr,
-//  Forms,
-  Graphics;
+  Classes;
+
+
+
+type
+  SvcUtil = Object
+    function IsServiceInstalled(const srv_name: string): Boolean;
+  end;
+
+
+
+
 
 type
   TOnStatus = procedure(Sender: TObject; Status: string) of object;
@@ -122,8 +184,104 @@ type
 
 implementation
 
-uses Math, StrUtils, SyncObjs;
+uses Windows, Math, StrUtils, SyncObjs,
+  //
+  // services
+  SvcMgr,
+  WinSvc;
 
+
+{ SvcUtil }
+
+function SvcUtil.IsServiceInstalled(const srv_name: string): Boolean;
+const
+  //
+  // assume that the total number of
+  // services is less than 4096.
+  // increase if necessary
+  cnMaxServices = 4096;
+
+type
+  TSvcA = array[0..cnMaxServices]
+          of TEnumServiceStatus;
+  PSvcA = ^TSvcA;
+
+var
+  //
+  // temp. use
+  j: Integer;
+
+  //
+  // service control
+  // manager handle
+  schm: SC_Handle;
+
+  //
+  // bytes needed for the
+  // next buffer, if any
+  nBytesNeeded,
+
+  //
+  // number of services
+  nServices,
+
+  //
+  // pointer to the
+  // next unread service entry
+  nResumeHandle: DWord;
+
+  //
+  // service status array
+  ssa : PSvcA;
+
+begin
+    Result :=False ;
+
+    // connect to the service
+    // control manager
+    schm :=OpenSCManager(nil, nil, SC_MANAGER_ALL_ACCESS);
+    if schm > 0 then
+    begin
+        nResumeHandle :=0;
+
+        New(ssa);
+
+        EnumServicesStatus(
+          schm,
+          SERVICE_WIN32,
+          SERVICE_STATE_ALL,
+          ssa^[0],
+          SizeOf(ssa^),
+          nBytesNeeded,
+          nServices,
+          nResumeHandle );
+
+
+        //
+        // assume that our initial array
+        // was large enough to hold all
+        // entries. add code to enumerate
+        // if necessary.
+        //
+
+        for j := 0 to nServices-1 do
+        begin
+            if StrPas(
+              ssa^[j].lpServiceName ) =srv_name then
+            begin
+                Result :=True;
+                Break ;
+            end;
+        end;
+
+        Dispose(ssa);
+
+        // close service control
+        // manager handle
+        CloseServiceHandle(schm);
+
+    end;
+end;
 
 procedure ClearCThreadProcRec(var CRec: TCThreadProcRec);
 begin
@@ -196,7 +354,7 @@ end;
 procedure TCThreadProc.Execute;
   procedure do_error(message: string);
   begin
-    MessageDlg(message, mtError, [], 0);
+//    MessageDlg(message, mtError, [], 0);
   end;
 
   procedure DoProcedure;
@@ -391,5 +549,6 @@ procedure TCThreadProcess.RunProc;
 begin
 
 end;
+
 
 end.
