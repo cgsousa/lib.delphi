@@ -181,6 +181,9 @@ type
   end;
 
 
+function CalcPerc(const aDividend, aDivisor: Extended): Word ;
+
+
 
 implementation
 
@@ -189,6 +192,20 @@ uses Windows, Math, StrUtils, SyncObjs,
   // services
   SvcMgr,
   WinSvc;
+
+
+function CalcPerc(const aDividend, aDivisor: Extended): Word ;
+var
+  frc: Single;
+begin
+    frc :=aDividend /aDivisor ;
+    frc :=frc *100 ;
+    Result :=Trunc(frc) ;
+    if Result = 0 then
+        Result :=1;
+end;
+
+
 
 
 { SvcUtil }

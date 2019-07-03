@@ -4,7 +4,7 @@ interface
 
 {$I TMSDEFS.INC}
 
-uses Classes, ComCtrls
+uses Classes, ComCtrls, Graphics
   {$IFDEF TMSPACK}
   ,AdvOfficeStatusBar, AdvOfficeStatusBarStylers
   {$ENDIF}
@@ -75,6 +75,21 @@ begin
     Result.Text:=aCaption;
     if aWidth > 0 then
         Result.Width:=aWidth;
+    //
+    // ProgressBar
+    if aStyle = psProgress then
+    begin
+        //
+        // set colors
+        Result.Progress.Level0Color :=clRed ;
+        Result.Progress.Level0ColorTo :=$00CACAFF ;
+        Result.Progress.Level1Color :=$0053A9FF ;
+        Result.Progress.Level1ColorTo :=$00A8D3FF ;
+        Result.Progress.Level2Color :=clYellow ;
+        Result.Progress.Level2ColorTo :=$00CAFFFF ;
+        Result.Progress.Level3Color :=clGreen ;
+        Result.Progress.Level3ColorTo :=$00E1FFE1 ;
+    end;
 end;
 
 procedure TCStatusBarWidget.AddPanels;

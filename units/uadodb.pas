@@ -212,7 +212,6 @@ type
     function FStr(const Value: string): string;
   end;
 
-
   TCColumnDef = class
   public
     Index: Integer;
@@ -226,8 +225,14 @@ type
   end;
 
   TADOQuery = class(ADODB.TADOQuery)
+  private
+    m_FileName: string ;
+    m_TimeBeforeOpen: TDateTime;
+    m_TimeAfterOpen: TDateTime;
+    procedure OnBeforeOpen(DataSet: TDataSet);
+    procedure OnAfterOpen(DataSet: TDataSet);
   public
-    constructor NewADOQuery(const AParamCheck: Boolean = False
+    constructor NewADOQuery(const aParamCheck: Boolean = False
       {;const AUniDirectional: Boolean = False} );
     function AddCmd(ACmd: string): Integer ; overload ;
     function AddCmd(ACmd: string; Args: array of const): Integer ; overload ;
@@ -243,13 +248,14 @@ type
     function Param(const AParamName: string): TParameter; overload;
     function Param(const AParamIndex: Integer): TParameter; overload;
   public
-    procedure SaveToFile(const AFileName: string = '0.SQL');
+    procedure SaveToFile(const aFileName: string = '0.SQL');
     procedure DoClear ;
   public
     class function getDateTime: TDateTime ;
     class function getHost(out host_id, host_nm: string): Boolean ;
     class function getNewID(): string ;
     class function getVersion(): string ;
+    class function getCompLevel(): SmallInt ;
     class function ident_current(const table_name: string): Integer ;
     class function Exists(const sql_dml: string): Boolean ;
   end;
@@ -261,8 +267,11 @@ type
     function AddParamWithValue(const AName: string;
       const AType: TFieldType ;
       const AValue: Variant): TParameter;
+    function AddParamDatetime(const AName: string; const aValue: TDateTime;
+      const aIncTime: Boolean = False): TParameter;
     function AddParamOut(const AName: string;
       const AType: TFieldType): TParameter;
+    function AddParamRet(const AName: string): TParameter;
     function Param(const AParamName: string): TParameter; overload;
     function Param(const AParamIndex: Integer): TParameter; overload;
   end;
@@ -839,7 +848,7 @@ begin
     if Self.Active then
     begin
       Self.Close ;
-      Self.SQL.Clear ;
+      Self.SQL.Clear;
     end;
     Result :=Self.SQL.Add(ACmd)
     ;
@@ -917,6 +926,34 @@ end;
 function TADOQuery.Field(const AFieldIndex: Integer): TField;
 begin
     Result :=Self.Fields[AFieldIndex];
+end;
+
+class function TADOQuery.getCompLevel: SmallInt;
+var
+  Q: TADOQuery;
+  S: string;
+  E: Integer;
+begin
+    Result :=0;
+    Q :=TADOQuery.NewADOQuery();
+    try
+        Q.AddCmd('declare @pro_ver sysname; set @pro_ver =%s',[Q.FStr('ProductVersion')]);
+        Q.AddCmd('select serverproperty(@pro_ver) as pro_ver');
+        try
+            Q.Open ;
+            S :=Q.Field('pro_ver').AsString;
+        except Result :=0 end;
+    finally
+        Q.Free ;
+    end;
+    //
+    // trata retorno
+    Result :=Pos('.', S);
+    if Result > 0 then
+    begin
+        S :=Copy(S, 1, Result-1);
+        Val(S, Result, E);
+    end;
 end;
 
 class function TADOQuery.getDateTime: TDateTime;
@@ -1003,7 +1040,7 @@ begin
     end;
 end;
 
-constructor TADOQuery.NewADOQuery(const AParamCheck: Boolean
+constructor TADOQuery.NewADOQuery(const aParamCheck: Boolean
   {;const AUniDirectional: Boolean});
 begin
     if not Assigned(ConnectionADO) then
@@ -1012,8 +1049,49 @@ begin
     end;
     inherited Create(nil);
     Self.Connection :=ConnectionADO;
-    Self.ParamCheck :=AParamCheck;
+    Self.ParamCheck :=aParamCheck;
     Self.SetUniDirectional(False); //AUniDirectional;
+    Self.BeforeOpen :=OnBeforeOpen;
+    Self.AfterOpen :=OnAfterOpen;
+    Self.m_TimeBeforeOpen :=0;
+    Self.m_TimeAfterOpen :=0;
+end;
+
+procedure TADOQuery.OnAfterOpen(DataSet: TDataSet);
+var
+  S: TFileStream ;
+  E: Boolean ;
+  Buf: AnsiString ;
+begin
+    m_TimeAfterOpen :=Now ;
+    if m_FileName <> '' then
+    begin
+        E :=FileExists(m_FileName) ;
+        S :=TFileStream.Create(m_FileName,
+                              IfThen( E,
+                                      Integer(fmOpenReadWrite),
+                                      Integer(fmCreate)) or fmShareDenyWrite );
+
+        if E then
+        begin
+            S.Seek(0, soFromEnd);  // vai para EOF
+        end
+        else begin
+            Buf :=SQL.CommaText ;
+            S.Write(Pointer(Buf)^,Length(Buf));
+            Buf :=sLineBreak;
+            S.Write(Pointer(Buf)^,Length(Buf));
+        end;
+        Buf :=Format('--// %d segundos'#13#10,[SecondsBetween(m_TimeAfterOpen,m_TimeBeforeOpen)]) ;
+        S.Write(Pointer(Buf)^,Length(Buf));
+        S.Free ;    //AddLog(sLineBreak);
+    end;
+end;
+
+procedure TADOQuery.OnBeforeOpen(DataSet: TDataSet);
+begin
+    m_TimeBeforeOpen :=Now ;
+
 end;
 
 function TADOQuery.Param(const AParamName: string): TParameter;
@@ -1028,13 +1106,27 @@ begin
 
 end;
 
-procedure TADOQuery.SaveToFile(const AFileName: string);
+procedure TADOQuery.SaveToFile(const aFileName: string);
 begin
-  Self.SQL.SaveToFile(AFileName)
-  ;
+    m_FileName :=aFileName  ;
+    SQL.SaveToFile(AFileName);
 end;
 
 { TADOStoredProc }
+
+function TADOStoredProc.AddParamDatetime(const AName: string;
+  const aValue: TDateTime; const aIncTime: Boolean): TParameter;
+var
+  Y,M,D: Word ;
+begin
+    Result :=Self.Parameters.CreateParameter(AName, ftDateTime, pdInput, 0, Null) ;
+    Result.Value :=Trunc(AValue);
+    if AIncTime then
+    begin
+        DecodeDate(AValue, Y, M, D);
+        Result.Value :=EncodeDateTime(Y, M, D, 23, 59, 00, 000) ;
+    end;
+end;
 
 function TADOStoredProc.AddParamOut(const AName: string;
   const AType: TFieldType): TParameter;
@@ -1044,6 +1136,13 @@ begin
       ftString: Result.Size :=1024;
     end;
     Result.Value :=Null ;
+end;
+
+function TADOStoredProc.AddParamRet(const AName: string): TParameter;
+begin
+    Result :=Self.Parameters.CreateParameter( AName,
+                                              ftInteger,
+                                              pdReturnValue, 0, 0) ;
 end;
 
 function TADOStoredProc.AddParamWithValue(const AName: string;
@@ -1634,6 +1733,7 @@ begin
         sp.Free ;
     end;
 end;
+
 
 initialization
     ConnectionADO :=nil  ;

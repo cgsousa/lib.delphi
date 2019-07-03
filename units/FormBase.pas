@@ -298,7 +298,7 @@ begin
     FStatus.BevelOuter :=bvNone ;
     FStatus.BorderStyle:=bsSingle;
     FStatus.Caption :='';
-    FStatus.Color :=clGradientActiveCaption ;
+    FStatus.Color :=clInfoBk; // GradientActiveCaption ;
     FStatus.Font.Name :='Trebuchet MS';
     FStatus.Height :=50 ;
     FStatus.Padding.Left :=3;
