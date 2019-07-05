@@ -184,7 +184,6 @@ type
 function CalcPerc(const aDividend, aDivisor: Extended): Word ;
 
 
-
 implementation
 
 uses Windows, Math, StrUtils, SyncObjs,
