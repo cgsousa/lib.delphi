@@ -6,6 +6,8 @@ uses SysUtils, Classes,
   Generics.Collections ;
 
 type
+  TCCadEmp = class;
+  TCEndereco = class;
 
   IEndereco =Interface(IInterface)
     function getxLogr: String;
@@ -46,7 +48,6 @@ type
     function getxPais: String;
     property xPais: String read getxPais;
   end;
-  TCEndereco = class;
 
   TCodigoRegimeTrib = (crtSimplesNacional, crtSimplesExReceita, crtRegimeNormal);
 

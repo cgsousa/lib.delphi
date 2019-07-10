@@ -3,14 +3,72 @@ unit uparam;
 interface
 
 uses
+  SysUtils,
   Classes,
   DB,
-  SysUtils,
   Generics.Collections
   ;
 
 
 type
+//  TCParam = class ;
+//  TCValue = class ;
+
+  IValue =Interface(IInterface)
+    function getBoo: Boolean ;
+    property toBoo: Boolean read getBoo;
+
+    function getDat: TDateTime ;
+    property toDat: TDateTime read getDat;
+
+    function getInt: Integer ;
+    property toInt: Integer  read getInt;
+
+    function getStr: String ;
+    property toStr: String read getStr;
+  end;
+
+  IParam =Interface(IInterface)
+    function getID: string ;
+    property ID: string read getID;
+
+    function getXType: TFieldType;
+    procedure setXType(const aValue: TFieldType);
+    property xType: TFieldType read getXType write setXType;
+
+    function getBoo: Boolean ;
+    property toBoo: Boolean read getBoo;
+
+    function getDat: TDateTime ;
+    property toDat: TDateTime read getDat;
+
+    function getInt: Integer ;
+    property toInt: Integer  read getInt;
+
+    function getStr: String ;
+    property toStr: String read getStr;
+
+  end;
+
+  TCDelegateValue = class(TAggregatedObject, IValue)
+  private
+    m_Value: String;
+    function getBoo: Boolean ;
+    function getDat: TDateTime ;
+    function getInt: Integer ;
+    function getStr: String ;
+  public
+    property toBoo: Boolean read getBoo;
+    property toDat: TDateTime read getDat;
+    property toInt: Integer  read getInt;
+    property toStr: String read getStr;
+    //procedure setValue<T>(const aValue: T) ;
+  end;
+
+
+
+
+
   TCParametro = class
   private
     _id: string ;
@@ -569,5 +627,32 @@ begin
         params.Free ;
     end;
 end;
+
+{ TCDelegateValue }
+
+function TCDelegateValue.getBoo: Boolean;
+begin
+    TryStrToBool(m_Value, Result) ;
+
+end;
+
+function TCDelegateValue.getDat: TDateTime;
+begin
+    TryStrToDateTime(m_Value, Result) ;
+
+end;
+
+function TCDelegateValue.getInt: Integer;
+begin
+    TryStrToInt(m_Value, Result) ;
+
+end;
+
+function TCDelegateValue.getStr: String;
+begin
+    Result :=m_Value ;
+
+end;
+
 
 end.
