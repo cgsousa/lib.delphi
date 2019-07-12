@@ -1,8 +1,8 @@
 {***
-* Utilidades para manipulação de strings Delphi/fpc
+* Utilidade para manipulação de strings Delphi/FPC
 * Todos os direitos reservados
 * Autor: Carlos Gonzaga
-* Data: 20.05.2008
+* Data: 20.05.2007
 *}
 unit ustr;
 
@@ -20,6 +20,8 @@ Símbolo : Significado
 *}
 
 interface
+
+uses SysUtils;
 
 
 {$REGION 'UtilStr'}
@@ -85,6 +87,11 @@ type
     //
     // Retorna <aCount> copias de <aStr>
     function Dupe(const aCount: Integer; const aStr: string =' '): string;
+
+    //
+    //
+    function getNumber(const aStr: string): string;
+    function isNumber(const aStr: string): Boolean;
   end;
 
 {$ENDREGION}
@@ -92,7 +99,12 @@ type
 
 implementation
 
-uses SysUtils, StrUtils;
+uses StrUtils;
+
+function CharIsNumber(const C: Char): Boolean;
+begin
+    Result := CharInSet( C, ['0'..'9'] ) ;
+end ;
 
 
 { UtilStr }
@@ -169,6 +181,34 @@ begin
 //        Result :=TimeToStr(aTime,Self.m_FormatSettings)
 //    else
         Result :=FormatDateTime('hh:nn:ss',aTime) ;
+end;
+
+function UtilStr.getNumber(const aStr: string): string;
+Var
+  I : Integer ;
+  LenValue : Integer;
+begin
+  Result   := '' ;
+  LenValue :=Self.Len(aStr) ;
+  for I := 1 to LenValue do
+  begin
+     if CharIsNumber(aStr[I]) then
+        Result := Result + aStr[I];
+  end;
+end;
+
+function UtilStr.isNumber(const aStr: string): Boolean;
+var
+  A, LenStr : Integer ;
+begin
+  LenStr :=Self.Len(aStr) ;
+  Result := (LenStr > 0) ;
+  A      := 1 ;
+  while Result and ( A <= LenStr )  do
+  begin
+     Result :=CharIsNumber(aStr[A]) ;
+     Inc(A) ;
+  end;
 end;
 
 function UtilStr.Len(const aStr: String): Integer;

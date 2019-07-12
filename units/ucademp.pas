@@ -222,7 +222,7 @@ var
 
 implementation
 
-uses uadodb ;
+uses uadodb, ustr ;
 
 { TCEndereco }
 
@@ -395,18 +395,8 @@ end;
 
 procedure TCCadEmp.Load(const codfil: SmallInt);
 var
-  Q: TADOQuery ;
-  //
-  function RemoveChars(const aStr: string): String ;
-  begin
-      Result :=Trim(aStr);
-      Result :=StringReplace(Result, '.', '', [rfReplaceAll]) ;
-      Result :=StringReplace(Result, '-', '', [rfReplaceAll]) ;
-      Result :=StringReplace(Result, '/', '', [rfReplaceAll]) ;
-      Result :=StringReplace(Result, '(', '', [rfReplaceAll]) ;
-      Result :=StringReplace(Result, ')', '', [rfReplaceAll]) ;
-  end;
-  //
+  Q: TADOQuery;
+  U: UtilStr ;
 var
   crt: string;
 begin
@@ -436,7 +426,7 @@ begin
 
       Q.Open;
 
-      m_CNPJ  :=RemoveChars(Q.Field('fil_cnpj').AsString) ;
+      m_CNPJ  :=U.getNumber(Q.Field('fil_cnpj').AsString) ;
       m_xNome :=Q.Field('fil_xnome').AsString;
       m_xFant :=Q.Field('fil_xfant').AsString;
 
@@ -447,11 +437,11 @@ begin
           m_ender.cMun:=Q.Field('fil_codmun').AsInteger;
       m_ender.xMun    :=Q.Field('fil_munici').AsString;
       m_ender.UF      :=Q.Field('fil_uf').AsString;
-      m_ender.CEP     :=Q.Field('fil_cep').AsInteger;
+      m_ender.CEP :=StrToIntDef(U.getNumber(Q.Field('fil_cep').AsString), 0);
 
-      m_IE  :=RemoveChars(Q.Field('fil_ie').AsString) ;
+      m_IE  :=U.getNumber(Q.Field('fil_ie').AsString) ;
 
-      m_fone  :=RemoveChars(Q.Field('fil_fone').AsString);
+      m_fone  :=U.getNumber(Q.Field('fil_fone').AsString);
       m_email :=Q.Field('fil_email').AsString;
       //
       // CRT

@@ -5,6 +5,9 @@ interface
 uses SysUtils, IniFiles;
 
 type
+  IMemIniFile = Interface(IInterface)
+
+  end;
   TCMemIniFile =class(TMemIniFile)
   private
     m_ActiveSection: String ;
