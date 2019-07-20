@@ -14,7 +14,7 @@ type
 //  TCParam = class ;
 //  TCValue = class ;
 
-  IValue =Interface(IInterface)
+  IParamValue =Interface(IInterface)
     function getBoo: Boolean ;
     property toBoo: Boolean read getBoo;
 
@@ -28,29 +28,28 @@ type
     property toStr: String read getStr;
   end;
 
-  IParam =Interface(IInterface)
+  IParametro =Interface(IInterface)
     function getID: string ;
     property ID: string read getID;
 
     function getXType: TFieldType;
-    procedure setXType(const aValue: TFieldType);
-    property xType: TFieldType read getXType write setXType;
+    property xType: TFieldType read getXType;
 
-    function getBoo: Boolean ;
-    property toBoo: Boolean read getBoo;
-
-    function getDat: TDateTime ;
-    property toDat: TDateTime read getDat;
-
-    function getInt: Integer ;
-    property toInt: Integer  read getInt;
-
-    function getStr: String ;
-    property toStr: String read getStr;
+//    function getBoo: Boolean ;
+//    property toBoo: Boolean read getBoo;
+//
+//    function getDat: TDateTime ;
+//    property toDat: TDateTime read getDat;
+//
+//    function getInt: Integer ;
+//    property toInt: Integer  read getInt;
+//
+//    function getStr: String ;
+//    property toStr: String read getStr;
 
   end;
 
-  TCDelegateValue = class(TAggregatedObject, IValue)
+  TCDelegateValue = class(TAggregatedObject, IParamValue)
   private
     m_Value: String;
     function getBoo: Boolean ;
@@ -66,6 +65,19 @@ type
   end;
 
 
+  TCParam = class(TInterfacedObject, IParametro)
+  private
+    m_ID: string;
+    m_xType: TFieldType ;
+    function getID: string ;
+    function getXType: TFieldType;
+  public
+    property ID: string read getID;
+    property xType: TFieldType read getXType ;
+    constructor Create(const aID: string; const aType: TFieldType);
+  public
+    class function New(const aID: string; const aType: TFieldType): IParametro ;
+  end;
 
 
 
@@ -134,6 +146,37 @@ var
 implementation
 
 uses uadodb ;
+
+
+{ TCParam }
+
+constructor TCParam.Create(const aID: string; const aType: TFieldType);
+begin
+    m_ID :=aID ;
+    m_xType :=aType ;
+
+end;
+
+function TCParam.getID: string;
+begin
+    Result :=m_ID ;
+
+end;
+
+function TCParam.getXType: TFieldType;
+begin
+    Result :=m_xType ;
+
+end;
+
+class function TCParam.New(const aID: string;
+  const aType: TFieldType): IParametro ;
+begin
+    Result :=TCParam.Create(aID, aType) ;
+
+end;
+
+
 
 { TCParametro }
 
@@ -653,6 +696,7 @@ begin
     Result :=m_Value ;
 
 end;
+
 
 
 end.

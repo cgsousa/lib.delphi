@@ -532,15 +532,13 @@ begin
     m_Interval :=0 ;
 
     //
-    // desvio
-    if Assigned(m_OnExecute) then
+    // loop around until we should stop
+    while not Terminated do
     begin
-        CallOnExecute ;
-    end
-    else begin
-        //exec
-        while not Terminated do  // loop around until we should stop
-        begin
+        //
+        // caso aconteça algum error/except
+        // garante a proxima exec.
+        try
             Inc(Count);
     //        if Count >= SecBetweenRuns then
     //        begin
@@ -555,8 +553,14 @@ begin
                 Self.RunProc ;
 
     //        end;
+
+            //
+            // wait um sec
             Sleep(1000);
             Inc(m_Interval) ;
+        except
+            on E:Exception do
+                CallOnStrProc(E.Message);
         end;
     end;
 end;

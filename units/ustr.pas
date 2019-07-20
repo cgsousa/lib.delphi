@@ -74,14 +74,17 @@ type
 
     //function dtoS(const aDate: TDateTime): string ;
     function dhToS(const aDat: TDateTime): string;
+
+  public
     //
     // formatings
     //procedure setFormat(const aFormat: TFormatSettings) ;
     function fInt(const aVal: Extended): string ;
     function fCur(const aVal: Currency; const aIncSimbol: Boolean =false): string ;
     function fFlt(const aVal: Extended): string ;
-    function fDat(const aDat: TDateTime; const aFormat: string =''): string;
-    function fTime(const aTime: TDateTime): string;
+    function fDt(const aDt: TDateTime): string;
+    function fDtTm(const aDtTm: TDateTime; const aFormat: string =''): string;
+    function fTm(const aTm: TDateTime): string;
     function fSQL(const aStr: string): string ;
 
     //
@@ -144,11 +147,16 @@ begin
         Result :=Self.fFlt(aVal) ;
 end;
 
-function UtilStr.fDat(const aDat: TDateTime; const aFormat: string): string;
+function UtilStr.fDt(const aDt: TDateTime): string;
+begin
+    Result :=FormatDateTime('DD/MM/YYYY', aDt);
+end;
+
+function UtilStr.fDtTm(const aDtTm: TDateTime; const aFormat: string): string;
 begin
     if aFormat = '' then
-        Result :='DD/MM/YYYY hh:nn';
-    Result :=FormatDateTime(aFormat, aDat);
+        Result :='DD/MM/YYYY hh:nn:ss';
+    Result :=FormatDateTime(aFormat, aDtTm);
 end;
 
 function UtilStr.fFlt(const aVal: Extended): string;
@@ -175,12 +183,10 @@ begin
         Result :='NULL';
 end;
 
-function UtilStr.fTime(const aTime: TDateTime): string;
+function UtilStr.fTm(const aTm: TDateTime): string;
 begin
-//    if SizeOf(Self.m_FormatSettings) > 0 then
-//        Result :=TimeToStr(aTime,Self.m_FormatSettings)
-//    else
-        Result :=FormatDateTime('hh:nn:ss',aTime) ;
+    Result :=FormatDateTime('hh:nn:ss', aTm) ;
+
 end;
 
 function UtilStr.getNumber(const aStr: string): string;
