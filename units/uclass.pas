@@ -72,13 +72,11 @@ type
   end;
 
 
-
-
-
 type
   TOnStatus = procedure(Sender: TObject; Status: string) of object;
   TGetIntProc = procedure(const I: Int64) of object;
   TGetBooProc = procedure(const B: Boolean) of object;
+  TGetExceptProc = procedure(Sender: TObject; const E: Exception) of object;
 
 //type
 //  TCProcedure = procedure of object;
@@ -129,6 +127,7 @@ type
 
   { TThread melhorada }
   TCThreadProcess = class(TThread)
+  strict private
   private
     m_SecBetweenRuns: Int32;
     //
@@ -148,6 +147,11 @@ type
     // pointer da view (form) que recebe um Int64
     // pode ser usado para amostra em ProgressBar
     m_OnIntProc: TGetIntProc;
+
+    //
+    // pointer da que trata as exceptions qdo houver
+    m_OnExceptProc: TGetExceptProc ;
+
   protected
     m_Interval: Cardinal ;
     procedure Execute; override;
@@ -157,25 +161,28 @@ type
     //
     // procedure que indica o inicio da Thread
     procedure CallOnBeforeExecute;
-    procedure CallOnExecute;
     procedure CallOnStrProc(const aStr: string); overload ;
     procedure CallOnStrProc(const aStr: string; const args: array of const); overload ;
     procedure CallOnIntProc(const aInt: Int64);
+    procedure CallOnExceptProc(const aEx: Exception) ;
   public
     property Terminated;
     property SecBetweenRuns: Int32 read m_SecBetweenRuns write m_SecBetweenRuns;
+
     property OnBeforeExecute: TNotifyEvent
         read m_OnBeforeExecute
         write m_OnBeforeExecute;
-    property OnExecute: TNotifyEvent
-      read m_OnExecute
-      write m_OnExecute;
+
     property OnStrProc: TGetStrProc
         read m_OnStrProc
         write m_OnStrProc;
+
     property OnIntProc: TGetIntProc
         read m_OnIntProc
         write m_OnIntProc;
+
+    property OnExceptProc: TGetExceptProc read m_OnExceptProc write m_OnExceptProc;
+
     constructor Create(const aCreateSuspended: Boolean;
       const aFreeOnTerminate: Boolean = False); reintroduce;
   end;
@@ -478,14 +485,19 @@ begin
     // de que a instância do thread tenha pelo menos esse tempo.
 end;
 
-procedure TCThreadProcess.CallOnExecute;
+procedure TCThreadProcess.CallOnExceptProc(const aEx: Exception);
 begin
     if GetCurrentThreadId = MainThreadID then
     begin
-        if Assigned(m_OnExecute) then m_OnExecute(Self);
+        if Assigned(m_OnExceptProc) then
+            m_OnExceptProc(Self, aEx);
     end
     else begin
-        Synchronize(CallOnExecute);
+        Synchronize(
+            procedure
+            begin
+                CallOnExceptProc(aEx);
+            end);
     end;
 end;
 
@@ -560,7 +572,10 @@ begin
             Inc(m_Interval) ;
         except
             on E:Exception do
+            begin
+                //CallOnExceptProc(E);
                 CallOnStrProc(E.Message);
+            end;
         end;
     end;
 end;
