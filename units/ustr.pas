@@ -142,7 +142,7 @@ end;
 function UtilStr.fCur(const aVal: Currency; const aIncSimbol: Boolean): string ;
 begin
     if aIncSimbol then
-        Result :=Format('%12.2m',[aVal])
+        Result :=Trim(Format('%15.2m',[aVal]))
     else
         Result :=Self.fFlt(aVal) ;
 end;
@@ -161,7 +161,8 @@ end;
 
 function UtilStr.fFlt(const aVal: Extended): string;
 begin
-    Result :='';
+    Result :=Trim(Format('%15.2n',[aVal]));
+
 end;
 
 function UtilStr.fInt(const aVal: Extended): string ;

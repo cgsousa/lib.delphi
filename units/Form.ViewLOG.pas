@@ -11,7 +11,8 @@ uses
 type
   IViewLOG = Interface(IInterface)
     procedure setTitle(const aValue: string);
-    //procedure AddInfo(const aStr: string) ;
+    procedure setStr(const aStr: string) ;
+    procedure setVisible(const aValue: Boolean) ;
   end;
 
   Tfrm_ViewLOG = class(TBaseForm, IViewLOG)
@@ -28,6 +29,8 @@ type
     { Public declarations }
     constructor CreateNew(aOwner: TComponent; Dummy: Integer); override;
     procedure OnStr(const aStr: string) ;
+    procedure setVisible(const aValue: Boolean) ;
+    procedure setStr(const aStr: string) ;
     class function New(const aTitle: string): IViewLOG;
   end;
 
@@ -41,7 +44,7 @@ implementation
 
 procedure Tfrm_ViewLOG.AddInfo(const aStr: string);
 begin
-
+    //Self.Hide
 end;
 
 constructor Tfrm_ViewLOG.CreateNew(aOwner: TComponent; Dummy: Integer);
@@ -52,7 +55,7 @@ begin
     BorderWidth :=3 ;
     Ctl3D :=False;
     Font.Name :='Trebuchet MS' ;
-    Font.Size :=9 ;
+    Font.Size :=10 ;
     Height :=480;
     Width :=640 ;
     DefaultMonitor :=dmDesktop;
@@ -101,9 +104,21 @@ begin
     txt_Log.Perform( EM_SCROLLCARET, 0, 0 );}
 end;
 
+procedure Tfrm_ViewLOG.setStr(const aStr: string);
+begin
+    Self.OnStr(aStr);
+    Self.Show ;
+end;
+
 procedure Tfrm_ViewLOG.setTitle(const aValue: string);
 begin
     Self.Caption :=aValue ;
+
+end;
+
+procedure Tfrm_ViewLOG.setVisible(const aValue: Boolean);
+begin
+    Self.Visible :=aValue ;
 
 end;
 

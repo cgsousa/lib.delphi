@@ -242,6 +242,7 @@ type
       const APrecision: Byte = 0): TParameter;
     function AddParamDatetime(const AName: string; const AValue: TDateTime;
       const AIncTime: Boolean = False): TParameter;
+    function ConnectAndOpen: Boolean ;
   public
     function Field(const AFieldName: string): TField; overload;
     function Field(const AFieldIndex: Integer): TField; overload;
@@ -406,6 +407,8 @@ var
 
 function NewADOConnFromIniFile(const AFileName: string): ADODB.TADOConnection ;
 
+function AdoConnect(const aConnectName: string): Boolean ;
+function AdoDisconnect: Boolean;
 
 function DesencriptarVar(Texto: String):String;
 
@@ -421,6 +424,31 @@ begin
 FOR i := 1 TO Length(texto) do
 w := w + chr( Ord(texto[i]) - i - 19 );
 result:= w;
+end;
+
+
+function AdoConnect(const aConnectName: string): Boolean ;
+begin
+    Result :=True ;
+    if ConnectionADO = nil then
+    begin
+        ConnectionADO :=NewADOConnFromIniFile(aConnectName) ;
+    end ;
+    try
+        ConnectionADO.Connected :=True ;
+    except
+        Result :=False ;
+    end;
+end;
+
+function AdoDisconnect: Boolean ;
+begin
+    Result :=True ;
+    try
+        ConnectionADO.Close ;
+    except
+        Result :=False ;
+    end;
 end;
 
 function NewADOConnFromIniFile(const AFileName: string): ADODB.TADOConnection ;
@@ -895,6 +923,22 @@ begin
       end;
     end;
     Result.Value :=AValue ;
+end;
+
+function TADOQuery.ConnectAndOpen: Boolean;
+begin
+    Result :=True ;
+    if Self.Connection <> nil then
+    begin
+        try
+            Self.Connection.Connected :=True ;
+            Self.Open ;
+        except
+            Result :=False ;
+            Self.Connection.Close ;
+            raise;
+        end;
+    end;
 end;
 
 procedure TADOQuery.DoClear;
