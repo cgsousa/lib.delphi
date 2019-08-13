@@ -79,7 +79,7 @@ type
     //
     // formatings
     //procedure setFormat(const aFormat: TFormatSettings) ;
-    function fInt(const aVal: Extended): string ;
+    function fInt(const aVal: Int64): string ;
     function fCur(const aVal: Currency; const aIncSimbol: Boolean =false): string ;
     function fFlt(const aVal: Extended): string ;
     function fDt(const aDt: TDateTime): string;
@@ -165,15 +165,13 @@ begin
 
 end;
 
-function UtilStr.fInt(const aVal: Extended): string ;
-var
-  int: Int64 ;
+function UtilStr.fInt(const aVal: Int64): string ;
 begin
-    int :=Trunc(aVal) ;
-    if int > 999 then
-        Result :=Trim(Format('%9n',[int]))
+    if aVal > 999 then
+        //Result :=FloatToStrF(
+        Result :=FormatFloat('#,##0', aVal)
     else
-        Result :=IntToStr(int);
+        Result :=IntToStr(aVal);
 end;
 
 function UtilStr.fSQL(const aStr: string): string;
