@@ -1,6 +1,5 @@
 {***
-* Serviço/Thread para autorizar de forma automatica a (NF-e/NFC-e)
-* Atac Sistemas
+* Classes/Tipos para tratamento de registro de LOG
 * Todos os direitos reservados
 * Autor: Carlos Gonzaga
 * Data: 29.01.2017
@@ -82,10 +81,11 @@ type
   end;
 
 
-  TCLogFile = class(TStreamWriter)
-  private
-  public
-  end;
+//  TCLogFile = class(TStreamWriter)
+//  private
+//  public
+//  end;
+
 
   TCLog = class
   private
@@ -111,6 +111,45 @@ type
     procedure AddSec(const aFormat: string; const args: array of const); overload;
     procedure AddPar(const aBinStr: AnsiString);
   end;
+
+  //
+  //
+  ILogFile = Interface(IInterface)
+    function getFileName: string;
+    property FileName: string read getFileName;
+
+    function getLogChange: TOnLogChange ;
+    procedure setLogChange(const aValue: TOnLogChange) ;
+    property OnLogChange: TOnLogChange read getLogChange write setLogChange;
+
+    procedure AddStr(const aStr: string; const aIncTime: Boolean =False);
+  end;
+
+  //
+  //
+  TCLogFile = class(TInterfacedObject, ILogFile)
+  strict private
+    m_FileName: string ;
+    //m_AppendIfExists: Boolean;
+    m_Buf: TStreamWriter ;
+    m_OnLogChange: TOnLogChange;
+    function getFileName: string;
+    function getLogChange: TOnLogChange ;
+    procedure setLogChange(const aValue: TOnLogChange) ;
+
+    constructor Create(const aFileName: string;
+      const appendIfExists: Boolean); reintroduce;
+    destructor Destroy; override ;
+
+  protected
+  public
+    property FileName: string read getFileName;
+    property OnLogChange: TOnLogChange read getLogChange write setLogChange;
+    procedure AddStr(const aStr: string; const aIncTime: Boolean =False);
+    class function New(const aFileName: string;
+      const appendIfExists: Boolean): ILogFile;
+  end;
+
 
 
 type
@@ -507,8 +546,101 @@ begin
 end;
 
 
+//begin
+//  CLog :=TSWLog.Instance;
+//  CLog.LogPath :=ExtractFilePath(ParamStr(0));
+
+{ TCLogFile }
+
+procedure TCLogFile.AddStr(const aStr: string; const aIncTime: Boolean);
+var
+  H, N, S, MS: Word ;
 begin
-  CLog :=TSWLog.Instance;
-  CLog.LogPath :=ExtractFilePath(ParamStr(0));
+    if aIncTime then
+    begin
+        DecodeTime(Time, H, N, S, MS);
+        m_Buf.WriteLine('%.2d:%.2d:%.2d|%s',[H, N, S, aStr]) ;
+    end
+    else begin
+        m_Buf.WriteLine(aStr) ;
+    end;
+end;
+
+constructor TCLogFile.Create(const aFileName: string;
+  const appendIfExists: Boolean);
+var
+  dir: string ;
+  exists: Boolean ;
+  S: TFileStream;
+begin
+    inherited Create;
+    //
+    //
+    m_FileName :=aFileName;
+    if m_FileName = '' then
+    begin
+        m_FileName :=ChangeFileExt(ParamStr(0), '.LOG');
+    end;
+
+    dir :=ExtractFilePath(m_FileName);
+    if not DirectoryExists(dir) then
+    begin
+        ForceDirectories(dir);
+    end;
+
+    exists :=FileExists(m_FileName);
+    S :=TFileStream.Create(m_FileName,
+                   IfThen( appendIfExists and FileExists(m_FileName),
+                           Integer(fmOpenReadWrite),
+                   Integer(fmCreate)) or fmShareDenyWrite );
+
+    m_Buf :=TStreamWriter.Create(S) ;
+
+    if exists then
+    begin
+        S.Seek(0, soFromEnd);  // vai para EOF
+        AddStr('Arquivo de log aberto', True);
+    end
+    else begin
+        AddStr('Arquivo de log criado', True);
+    end;
+    //
+    //
+    m_OnLogChange :=nil;
+end;
+
+destructor TCLogFile.Destroy;
+begin
+    AddStr('Arquivo de log fechado', True);
+    if Assigned(m_Buf.BaseStream) then
+        m_Buf.BaseStream.Free ;
+    m_Buf.Destroy;
+    inherited;
+end;
+
+function TCLogFile.getFileName: string;
+begin
+    Result :=m_FileName ;
+
+end;
+
+function TCLogFile.getLogChange: TOnLogChange;
+begin
+    Result :=m_OnLogChange ;
+
+end;
+
+class function TCLogFile.New(const aFileName: string;
+  const appendIfExists: Boolean): ILogFile;
+begin
+    Result :=TCLogFile.Create(aFileName, appendIfExists) ;
+
+end;
+
+procedure TCLogFile.setLogChange(const aValue: TOnLogChange);
+begin
+    m_OnLogChange :=aValue ;
+
+end;
 
 end.

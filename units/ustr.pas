@@ -31,7 +31,7 @@ type
   //
   UtilStr = object
   strict private
-    //m_FormatSettings: TFormatSettings ;
+    var localFormatSettings: TFormatSettings ;
     //
     // Retorna quantas ocorrencias de <aSubStr> existem em <aStr>
     function Count(const aStr, aSubStr: String): Integer ;
@@ -78,14 +78,17 @@ type
   public
     //
     // formatings
-    //procedure setFormat(const aFormat: TFormatSettings) ;
-    function fInt(const aVal: Int64): string ;
+    procedure setFormat(const aFormat: TFormatSettings) ;
+    function fInt(const aVal: Extended): string ;
     function fCur(const aVal: Currency; const aIncSimbol: Boolean =false): string ;
     function fFlt(const aVal: Extended): string ;
     function fDt(const aDt: TDateTime): string;
     function fDtTm(const aDtTm: TDateTime; const aFormat: string =''): string;
     function fTm(const aTm: TDateTime): string;
     function fSQL(const aStr: string): string ;
+    function fCNPJ(const aStr: string): string ;
+    function fCPF(const aStr: string): string ;
+    function fMsk(const aStr, aEditMask: string): string ;
 
     //
     // Retorna <aCount> copias de <aStr>
@@ -102,7 +105,7 @@ type
 
 implementation
 
-uses StrUtils;
+uses StrUtils, MaskUtils;
 
 function CharIsNumber(const C: Char): Boolean;
 begin
@@ -139,8 +142,21 @@ begin
 
 end;
 
+function UtilStr.fCNPJ(const aStr: string): string;
+begin
+    Result :=FormatMaskText('00\.000\.000\/0000\-00;0; ', aStr);
+
+end;
+
+function UtilStr.fCPF(const aStr: string): string;
+begin
+    Result :=FormatMaskText('00\.000\.000\/0000\-00;0; ', aStr);
+
+end;
+
 function UtilStr.fCur(const aVal: Currency; const aIncSimbol: Boolean): string ;
 begin
+    //FormatCurr()
     if aIncSimbol then
         Result :=Trim(Format('%15.2m',[aVal]))
     else
@@ -161,17 +177,23 @@ end;
 
 function UtilStr.fFlt(const aVal: Extended): string;
 begin
+    //FormatFloat()
     Result :=Trim(Format('%15.2n',[aVal]));
 
 end;
 
-function UtilStr.fInt(const aVal: Int64): string ;
+function UtilStr.fInt(const aVal: Extended): string ;
 begin
     if aVal > 999 then
-        //Result :=FloatToStrF(
         Result :=FormatFloat('#,##0', aVal)
     else
-        Result :=IntToStr(aVal);
+        Result :=IntToStr(Trunc(aVal));
+end;
+
+function UtilStr.fMsk(const aStr, aEditMask: string): string;
+begin
+    Result :=FormatMaskText(aEditMask, aStr);
+
 end;
 
 function UtilStr.fSQL(const aStr: string): string;
@@ -315,6 +337,12 @@ function UtilStr.Pos(const aSubStr, aStr: string;
   const aOffset: Integer): Integer;
 begin
     Result :=StrUtils.PosEx(aSubStr, aStr, aOffset) ;
+
+end;
+
+procedure UtilStr.setFormat(const aFormat: TFormatSettings);
+begin
+    localFormatSettings :=aFormat ;
 
 end;
 
