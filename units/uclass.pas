@@ -161,6 +161,7 @@ type
     //
     // procedure que indica o inicio da Thread
     procedure CallOnBeforeExecute;
+    procedure CallOnExecute;
     procedure CallOnStrProc(const aStr: string); overload ;
     procedure CallOnStrProc(const aStr: string; const args: array of const); overload ;
     procedure CallOnIntProc(const aInt: Int64);
@@ -172,6 +173,10 @@ type
     property OnBeforeExecute: TNotifyEvent
         read m_OnBeforeExecute
         write m_OnBeforeExecute;
+
+    property OnExecute: TNotifyEvent
+        read m_OnExecute
+        write m_OnExecute;
 
     property OnStrProc: TGetStrProc
         read m_OnStrProc
@@ -498,6 +503,17 @@ begin
             begin
                 CallOnExceptProc(aEx);
             end);
+    end;
+end;
+
+procedure TCThreadProcess.CallOnExecute;
+begin
+    if GetCurrentThreadId = MainThreadID then
+    begin
+        if Assigned(m_OnExecute) then m_OnExecute(Self);
+    end
+    else begin
+        Synchronize(CallOnExecute);
     end;
 end;
 
