@@ -556,41 +556,51 @@ begin
     // sincroniza o method da view (form), como inicio de tarefa
     CallOnBeforeExecute;
 
-    Count :=0;
-    m_Interval :=0 ;
-
     //
-    // loop around until we should stop
-    while not Terminated do
-    begin
+    // desvio execute
+    if Assigned(m_OnExecute) then
+        m_OnExecute(Self)
+    //
+    // execute normal
+    else begin
         //
-        // caso aconteça algum error/except
-        // garante a proxima exec.
-        try
-            Inc(Count);
-    //        if Count >= SecBetweenRuns then
-    //        begin
-    //            Count :=0;
+        // inicializa contadores
+        Count :=0;
+        m_Interval :=0 ;
 
-                { place your service code here }
-                { this is where the action happens }
-                {if Assigned(Self.m_RunProc) then
-                begin
-                    Self.m_RunProc() ;
-                end;}
-                Self.RunProc ;
-
-    //        end;
-
+        //
+        // loop around until we should stop
+        while not Terminated do
+        begin
             //
-            // wait um sec
-            Sleep(1000);
-            Inc(m_Interval) ;
-        except
-            on E:Exception do
-            begin
-                //CallOnExceptProc(E);
-                CallOnStrProc(E.Message);
+            // caso aconteça algum error/except
+            // garante a proxima exec.
+            try
+                Inc(Count);
+        //        if Count >= SecBetweenRuns then
+        //        begin
+        //            Count :=0;
+
+                    { place your service code here }
+                    { this is where the action happens }
+                    {if Assigned(Self.m_RunProc) then
+                    begin
+                        Self.m_RunProc() ;
+                    end;}
+                    Self.RunProc ;
+
+        //        end;
+
+                //
+                // wait um sec
+                Sleep(1000);
+                Inc(m_Interval) ;
+            except
+                on E:Exception do
+                begin
+                    //CallOnExceptProc(E);
+                    CallOnStrProc(E.Message);
+                end;
             end;
         end;
     end;
