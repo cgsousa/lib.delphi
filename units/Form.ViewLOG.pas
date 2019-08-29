@@ -9,10 +9,11 @@ uses
   JvExStdCtrls, JvRichEdit ;
 
 type
+  //TModelChangedEvent = procedure of object;
   IViewLOG = Interface(IInterface)
-    procedure setTitle(const aValue: string);
-    procedure setStr(const aStr: string) ;
-    procedure setVisible(const aValue: Boolean) ;
+    procedure addStr(const aStr: string; const aColor: TColor =clDefault);
+    procedure clear ;
+    procedure showLOG(const aModal: Boolean);
   end;
 
   Tfrm_ViewLOG = class(TBaseForm, IViewLOG)
@@ -23,15 +24,18 @@ type
     procedure doCreateCtls ;
   private
     { IViewLOG }
-    procedure setTitle(const aValue: string);
-    procedure AddInfo(const aStr: string);
   public
     { Public declarations }
-    constructor CreateNew(aOwner: TComponent; Dummy: Integer); override;
-    procedure OnStr(const aStr: string) ;
-    procedure setVisible(const aValue: Boolean) ;
-    procedure setStr(const aStr: string) ;
-    class function New(const aTitle: string): IViewLOG;
+    //constructor CreateNew(aOwner: TComponent; Dummy: Integer); override;
+    constructor CreateNew(const aCaption: string;
+      const aHeight, aWidth: Integer); reintroduce;
+    destructor Destroy; override ;
+    procedure addStr(const aStr: string; const aColor: TColor =clDefault);
+    procedure clear ;
+    procedure showLOG(const aModal: Boolean) ;
+    class function New(const aTitle: string;
+      const aHeight: Integer =240;
+      const aWidth: Integer =320): IViewLOG;
   end;
 
 
@@ -42,27 +46,54 @@ implementation
 
 { Tfrm_ViewLOG }
 
-procedure Tfrm_ViewLOG.AddInfo(const aStr: string);
+procedure Tfrm_ViewLOG.addStr(const aStr: string; const aColor: TColor);
 begin
-    //Self.Hide
+    if aColor <> clDefault then
+    begin
+        m_JvRich.AddFormatText(aStr, [], 'Trebuchet MS', aColor) ;
+        m_JvRich.AddFormatText(sLineBreak,[]) ;
+    end
+    else
+    m_JvRich.Lines.Add(aStr);
+    ActiveControl :=m_JvRich ;
+    {txt_Log.SelLength := 0;
+    txt_Log.SelStart:=txt_Log.GetTextLen;
+    txt_Log.Perform( EM_SCROLLCARET, 0, 0 );}
 end;
 
-constructor Tfrm_ViewLOG.CreateNew(aOwner: TComponent; Dummy: Integer);
+procedure Tfrm_ViewLOG.clear;
 begin
-    inherited CreateNew(aOwner, Dummy);
+    m_JvRich.Clear ;
+
+end;
+
+//constructor Tfrm_ViewLOG.CreateNew(aOwner: TComponent; Dummy: Integer);
+constructor Tfrm_ViewLOG.CreateNew(const aCaption: string;
+  const aHeight, aWidth: Integer);
+begin
+    //inherited CreateNew(aOwner, Dummy);
+    inherited CreateNew(Application, 0);
     BorderIcons :=[biSystemMenu];
     BorderStyle :=bsSingle ;
     BorderWidth :=3 ;
     Ctl3D :=False;
     Font.Name :='Trebuchet MS' ;
     Font.Size :=10 ;
-    Height :=480;
-    Width :=640 ;
+    Height :=aHeight;
+    Width :=aWidth ;
     DefaultMonitor :=dmDesktop;
 	  Position  :=poScreenCenter;
+    Caption :=aCaption ;
     //
     //
     doCreateCtls ;
+
+end;
+
+destructor Tfrm_ViewLOG.Destroy;
+begin
+    m_JvRich.Destroy ;
+    inherited;
 end;
 
 procedure Tfrm_ViewLOG.doCreateCtls;
@@ -76,50 +107,19 @@ begin
     m_JvRich.Clear ;
 end;
 
-class function Tfrm_ViewLOG.New(const aTitle: string): IViewLOG;
+class function Tfrm_ViewLOG.New(const aTitle: string;
+  const aHeight, aWidth: Integer): IViewLOG;
 begin
-    Result :=Tfrm_ViewLOG.CreateNew(Application, 0);
-    Result.setTitle(aTitle);
+    Result :=Tfrm_ViewLOG.CreateNew(aTitle, aHeight, aWidth);
+
 end;
 
-procedure Tfrm_ViewLOG.OnStr(const aStr: string);
-var
-  P: Integer ;
-  S: string ;
+procedure Tfrm_ViewLOG.showLOG(const aModal: Boolean);
 begin
-    //
-    // busca info
-    P :=Pos('ERR', aStr) ;
-    if P > 0 then
-    begin
-        S :=Copy(aStr,4,Length(aStr));
-        m_JvRich.AddFormatText(S, [], 'Trebuchet MS', clRed) ;
-        m_JvRich.AddFormatText(sLineBreak,[]) ;
-    end
+    if aModal then
+        Self.ShowModal
     else
-        m_JvRich.Lines.Add(aStr);
-    ActiveControl :=m_JvRich ;
-    {txt_Log.SelLength := 0;
-    txt_Log.SelStart:=txt_Log.GetTextLen;
-    txt_Log.Perform( EM_SCROLLCARET, 0, 0 );}
-end;
-
-procedure Tfrm_ViewLOG.setStr(const aStr: string);
-begin
-    Self.OnStr(aStr);
-    Self.Show ;
-end;
-
-procedure Tfrm_ViewLOG.setTitle(const aValue: string);
-begin
-    Self.Caption :=aValue ;
-
-end;
-
-procedure Tfrm_ViewLOG.setVisible(const aValue: Boolean);
-begin
-    Self.Visible :=aValue ;
-
+        Self.show;
 end;
 
 end.
