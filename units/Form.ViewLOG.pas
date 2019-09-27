@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls,
-  FormBase,
+  uclass, FormBase,
   JvExStdCtrls, JvRichEdit ;
 
 type
@@ -26,13 +26,13 @@ type
     { IViewLOG }
   public
     { Public declarations }
-    //constructor CreateNew(aOwner: TComponent; Dummy: Integer); override;
     constructor CreateNew(const aCaption: string;
       const aHeight, aWidth: Integer); reintroduce;
     destructor Destroy; override ;
     procedure addStr(const aStr: string; const aColor: TColor =clDefault);
     procedure clear ;
     procedure showLOG(const aModal: Boolean) ;
+
     class function New(const aTitle: string;
       const aHeight: Integer =240;
       const aWidth: Integer =320): IViewLOG;
@@ -67,11 +67,9 @@ begin
 
 end;
 
-//constructor Tfrm_ViewLOG.CreateNew(aOwner: TComponent; Dummy: Integer);
 constructor Tfrm_ViewLOG.CreateNew(const aCaption: string;
   const aHeight, aWidth: Integer);
 begin
-    //inherited CreateNew(aOwner, Dummy);
     inherited CreateNew(Application, 0);
     BorderIcons :=[biSystemMenu];
     BorderStyle :=bsSingle ;

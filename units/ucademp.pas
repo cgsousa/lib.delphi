@@ -326,7 +326,7 @@ end;
 
 { TCCadEmp }
 
-constructor TCCadEmp.Create;
+constructor TCCadEmp.Create();
 begin
     inherited Create;
     m_ender :=TCEndereco.Create(Self);
@@ -403,7 +403,10 @@ begin
     //
     m_CodFil :=codfil ;
     //
-    Q :=TADOQuery.NewADOQuery();
+    if uadodb.ConnectionString <> '' then
+        Q :=TADOQuery.NewADOQuery(uadodb.ConnectionString)
+    else
+        Q :=TADOQuery.NewADOQuery(False);
     try
       Q.AddCmd('declare @codfil smallint; set @codfil=%d;',[codfil]);
       Q.AddCmd('select                                   ');
@@ -460,7 +463,7 @@ end;
 
 class function TCCadEmp.New(const aCodFil: Smallint): ICadEmp;
 begin
-    Result :=TCCadEmp.Create ;
+    Result :=TCCadEmp.Create() ;
     Result.Load(aCodFil);
 
 end;

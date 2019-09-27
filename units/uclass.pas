@@ -39,7 +39,7 @@
 * Um exemplo simples para uma chamada parametrizada de Synchronize esta nas
 * implementações do métodos:
 *
-*   procedure CallOnStrProc(const aStr: string); overload ;
+*   procedure CallOnStrProc(const aStr: string);
 *   procedure CallOnIntProc(const aInt: Int64);
 *
 *}
@@ -135,22 +135,27 @@ type
     // utilizado para trava de alguns controles
     // nota: todos os controles travados aqui, deve ser liberado em OnTerminate
     m_OnBeforeExecute: TNotifyEvent;
+
     //
     // pointer da view (form) que substitui o method Execute
     // pode ser apontado de varios locais
     m_OnExecute: TNotifyEvent;
+
     //
     // pointer da view (form) que recebe uma string
     // pode ser usado para amostra de status
     m_OnStrProc: TGetStrProc;
+
+    //
+    // pointer da view (form) que indica o inicio da Thread
+    // utilizado para trava de alguns controles
+    // nota: todos os controles travados aqui, deve ser liberado em OnTerminate
+    m_OnINI: TNotifyEvent;
+
     //
     // pointer da view (form) que recebe um Int64
     // pode ser usado para amostra em ProgressBar
     m_OnIntProc: TGetIntProc;
-
-    //
-    // pointer da que trata as exceptions qdo houver
-    m_OnExceptProc: TGetExceptProc ;
 
   protected
     m_Interval: Cardinal ;
@@ -158,14 +163,19 @@ type
     //
     // procedure ligado ao method Execute
     procedure RunProc; virtual ;
+
+    //
+    // indicador do termino
+    procedure DoTerminate; override;
+
     //
     // procedure que indica o inicio da Thread
     procedure CallOnBeforeExecute;
     procedure CallOnExecute;
+    procedure CallOnINI;
+    procedure CallOnIntProc(const aInt: Int64);
     procedure CallOnStrProc(const aStr: string); overload ;
     procedure CallOnStrProc(const aStr: string; const args: array of const); overload ;
-    procedure CallOnIntProc(const aInt: Int64);
-    procedure CallOnExceptProc(const aEx: Exception) ;
   public
     property Terminated;
     property SecBetweenRuns: Int32 read m_SecBetweenRuns write m_SecBetweenRuns;
@@ -178,15 +188,15 @@ type
         read m_OnExecute
         write m_OnExecute;
 
-    property OnStrProc: TGetStrProc
-        read m_OnStrProc
-        write m_OnStrProc;
+    property OnINI: TNotifyEvent read m_OnINI write m_OnINI;
 
     property OnIntProc: TGetIntProc
         read m_OnIntProc
         write m_OnIntProc;
 
-    property OnExceptProc: TGetExceptProc read m_OnExceptProc write m_OnExceptProc;
+    property OnStrProc: TGetStrProc
+        read m_OnStrProc
+        write m_OnStrProc;
 
     constructor Create(const aCreateSuspended: Boolean;
       const aFreeOnTerminate: Boolean = False); reintroduce;
@@ -477,6 +487,7 @@ begin
             m_OnStrProc(aStr);
     end
     else begin
+        //Queue();
         Synchronize(
             procedure
             begin
@@ -490,22 +501,6 @@ begin
     // de que a instância do thread tenha pelo menos esse tempo.
 end;
 
-procedure TCThreadProcess.CallOnExceptProc(const aEx: Exception);
-begin
-    if GetCurrentThreadId = MainThreadID then
-    begin
-        if Assigned(m_OnExceptProc) then
-            m_OnExceptProc(Self, aEx);
-    end
-    else begin
-        Synchronize(
-            procedure
-            begin
-                CallOnExceptProc(aEx);
-            end);
-    end;
-end;
-
 procedure TCThreadProcess.CallOnExecute;
 begin
     if GetCurrentThreadId = MainThreadID then
@@ -514,6 +509,17 @@ begin
     end
     else begin
         Synchronize(CallOnExecute);
+    end;
+end;
+
+procedure TCThreadProcess.CallOnINI;
+begin
+    if GetCurrentThreadId = MainThreadID then
+    begin
+        if Assigned(m_OnINI) then m_OnINI(Self);
+    end
+    else begin
+        Synchronize(CallOnINI);
     end;
 end;
 
@@ -547,6 +553,13 @@ begin
     m_SecBetweenRuns :=10;
 end;
 
+procedure TCThreadProcess.DoTerminate;
+begin
+    inherited DoTerminate ;
+    //
+    // finaliza recursos
+end;
+
 procedure TCThreadProcess.Execute;
 var
   Count: Integer;
@@ -554,7 +567,10 @@ begin
     //
     // inicio
     // sincroniza o method da view (form), como inicio de tarefa
-    CallOnBeforeExecute;
+    if Assigned(m_OnINI) then
+        CallOnINI
+    else
+        CallOnBeforeExecute;
 
     //
     // desvio execute
@@ -598,7 +614,6 @@ begin
             except
                 on E:Exception do
                 begin
-                    //CallOnExceptProc(E);
                     CallOnStrProc(E.Message);
                 end;
             end;

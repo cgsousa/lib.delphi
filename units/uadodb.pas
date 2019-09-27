@@ -178,21 +178,6 @@ type
   end;
 
 type
-  {TADOConnProviderTyp = (proMSSQL, proOracle, proPgSQL) ;
-  TADOConnection = class(ADODB.TADOConnection)
-  private
-    class var _instance: TADOConnection;
-  protected
-    procedure DoConnect; override;
-  public
-    class function getInstance(): TADOConnection; static ;
-    class function NewADOConnFromIniFile(const AFileName: string): TADOConnection ;
-    //    class function NewADOConnection(const AProviderTyp: TADOConnProviderTyp;
-//      const AServer, AUsername, APassword: string;
-//      const ADefaultDB: string = '';
-//      const ADataSource: string): TADOConnection ;
-  end;}
-
 
   EConnectionADO = class(EDatabaseError)
     constructor Create();
@@ -224,6 +209,10 @@ type
     destructor Destroy; override;
   end;
 
+type
+//  IADOQuery = Interface(IInterface)
+//  end;
+
   TADOQuery = class(ADODB.TADOQuery)
   private
     m_FileName: string ;
@@ -232,8 +221,9 @@ type
     procedure OnBeforeOpen(DataSet: TDataSet);
     procedure OnAfterOpen(DataSet: TDataSet);
   public
-    constructor NewADOQuery(const aParamCheck: Boolean = False
-      {;const AUniDirectional: Boolean = False} );
+    constructor NewADOQuery(const aParamCheck: Boolean
+      {;const AUniDirectional: Boolean = False} ); overload ;
+    constructor NewADOQuery(aConnStr: WideString); overload ;
     function AddCmd(ACmd: string): Integer ; overload ;
     function AddCmd(ACmd: string; Args: array of const): Integer ; overload ;
     function AddParamWithValue(const AName: string; const AType: TFieldType;
@@ -264,7 +254,8 @@ type
   TADOStoredProc = class(ADODB.TADOStoredProc)
   public
     constructor NewADOStoredProc(const AStoredProcName: string;
-      const AParamCheck: Boolean = False);
+      const AParamCheck: Boolean =False); overload ;
+    constructor NewADOStoredProc(const aConnStr, aStoredProcName: string); overload ;
     function AddParamWithValue(const AName: string;
       const AType: TFieldType ;
       const AValue: Variant): TParameter;
@@ -282,7 +273,8 @@ type
   private
     _columns: TList<TCColumnDef> ;
   public
-    constructor NewADOCommand(const AParamCheck: Boolean = False);
+    constructor NewADOCommand(const AParamCheck: Boolean); overload;
+    constructor NewADOCommand(const aConnStr: WideString); overload;
     procedure AddCmd(ACmd: string); overload ;
     procedure AddCmd(ACmd: string; Args: array of const); overload ;
     function FStr(const Value: string): string;
@@ -306,35 +298,6 @@ type
     function Param(const AParamName: string): TParameter; overload;
     function Param(const AParamIndex: Integer): TParameter; overload;
   end;
-
-
-//type
-//  TCCustomADODataSet = class(ADODB.TCustomADODataSet)
-//  public
-//  end;
-//
-//  TCQuery = class(TCCustomADODataSet)
-//  private
-//    FSQL: TStrings;
-//    FRowsAffected: Integer;
-//    function GetSQL: TStrings;
-//    procedure SetSQL(const Value: TStrings);
-//  protected
-//    procedure QueryChanged(Sender: TObject);
-//  public
-//    constructor Create(AOwner: TComponent); override;
-//    destructor Destroy; override;
-//    function ExecSQL: Integer; {for TQuery compatibility}
-//    property RowsAffected: Integer read FRowsAffected;
-//  published
-//    property CommandTimeout;
-//    property DataSource;
-//    property EnableBCD;
-//    property ParamCheck;
-//    property Parameters;
-//    property Prepared;
-//    property SQL: TStrings read GetSQL write SetSQL;
-//  end;
 
 type
   IGenSerial = interface
@@ -400,22 +363,55 @@ type
       const aMaxVal: Cardinal): IGenSerial ;
   end;
 
+
+type // thread-safe
+  ObjConnectionString =Object
+  strict private
+    provider: string ;
+    servername: string;
+    username: string ;
+    password: string ;
+    databasename: string;
+  private
+    m_Date: TDateTime ;
+    m_LevelComp: Word ;
+    procedure doInitVars ;
+  public
+    property date: TDateTime read m_Date;
+    property levelComp: Word read m_LevelComp ;
+    constructor Create(const aFileName: string);
+    function Build: string ;
+  End;
+
+
+
 var
   ConnectionADO: ADODB.TADOConnection;
   LocalFormatSettings: TFormatSettings;
   Empresa: TCEmpresa ;
+  ConnectionString: String = '';
+  dbConnectionString: ObjConnectionString;
+
+function DesencriptarVar(Texto: String):String;
+
+procedure buildConnectionStringFromIniFile(const aFileName: string);
 
 function NewADOConnFromIniFile(const AFileName: string): ADODB.TADOConnection ;
 
 function AdoConnect(const aConnectName: string): Boolean ;
 function AdoDisconnect: Boolean;
 
-function DesencriptarVar(Texto: String):String;
+//
+// funcs Conn
+function getConnDatetime(): TDateTime ;
+function getConnCompLevel(): SmallInt;
 
 
 implementation
 
-uses ActiveX, Math, StrUtils, DateUtils, IOUtils, Variants;
+uses ActiveX, Math, StrUtils, DateUtils, IOUtils, Variants,
+  uini;
+
 
 function DesencriptarVar(Texto: String):String;
 var w : string;
@@ -426,6 +422,80 @@ w := w + chr( Ord(texto[i]) - i - 19 );
 result:= w;
 end;
 
+
+procedure buildConnectionStringFromIniFile(const aFileName: string);
+var
+  I: IMemIniFile ;
+  provider,srvname,user,pass: string ;
+begin
+  //
+    ConnectionString :='Persist Security Info=True;Packet Size=4096';
+    if TFile.Exists(aFileName) then
+    begin
+        I :=TCMemIniFile.New(aFileName);
+        I.Section :='Banco de Dados Local';
+        provider :=I.ValStr('Provider');
+        srvname  :=I.ValStr('Servidor');
+        user :=I.ValStr('Usuario');
+        pass:=DesencriptarVar(I.ValStr('Senha'));
+        if provider <> '' then
+        begin
+           ConnectionString :=ConnectionString +Format(';Provider=%s',[provider]);
+        end
+        else begin
+            ConnectionString :=ConnectionString +';Provider=SQLOLEDB.1';
+        end;
+        ConnectionString :=ConnectionString +Format(';Workstation ID=%s',[srvname]);
+        ConnectionString :=ConnectionString +Format(';Data Source=%s',[srvname]);
+        ConnectionString :=ConnectionString +Format(';User ID=%s',[user]);
+        ConnectionString :=ConnectionString +Format(';Password=%s',[pass]);
+        ConnectionString :=ConnectionString +Format(';Initial Catalog=%s',[I.ValStr('Banco')]);
+    end;
+end;
+
+function getConnDatetime(): TDateTime ;
+var
+  Q: TADOQuery ;
+begin
+    Result :=0;
+    Q :=TADOQuery.NewADOQuery(uadodb.ConnectionString) ;
+    try
+        Q.AddCmd('select getdate() as dh_sistem');
+        Q.Open;
+        if not Q.IsEmpty then
+            Result :=Q.Field('dh_sistem').AsDateTime ;
+    finally
+        Q.Free ;
+    end;
+end;
+
+function getConnCompLevel(): SmallInt;
+var
+  Q: TADOQuery;
+  S: string;
+  E: Integer;
+begin
+    Result :=0;
+    Q :=TADOQuery.NewADOQuery(uadodb.ConnectionString) ;
+    try
+        Q.AddCmd('declare @pro_ver sysname; set @pro_ver =%s',[Q.FStr('ProductVersion')]);
+        Q.AddCmd('select serverproperty(@pro_ver) as pro_ver');
+        try
+            Q.Open ;
+            S :=Q.Field('pro_ver').AsString;
+        except Result :=0 end;
+    finally
+        Q.Free ;
+    end;
+    //
+    // trata retorno
+    Result :=Pos('.', S);
+    if Result > 0 then
+    begin
+        S :=Copy(S, 1, Result-1);
+        Val(S, Result, E);
+    end;
+end;
 
 function AdoConnect(const aConnectName: string): Boolean ;
 begin
@@ -479,50 +549,76 @@ begin
 end;
 
 
-{ TADOConnection
+{ ObjConnectionString }
 
-procedure TADOConnection.DoConnect;
+function ObjConnectionString.Build: string;
 begin
-    inherited;
-    //ConnectionADO :=Self;
-
-end;
-
-class function TADOConnection.getInstance: TADOConnection;
-begin
-    if _instance = nil then
+    Result :='Persist Security Info=True;Packet Size=4096';
+    if provider <> '' then
     begin
-        _instance :=NewADOConnFromIniFile('Configuracoes.ini') ;
+       Result :=Result +Format(';Provider=%s',[provider]);
+    end
+    else begin
+        Result :=Result +'Provider=SQLOLEDB.1';
     end;
-    Result :=_instance ;
+    Result :=Result +Format(';Workstation ID=%s',[servername]);
+    Result :=Result +Format(';Data Source=%s',[servername]);
+    Result :=Result +Format(';User ID=%s',[username]);
+    Result :=Result +Format(';Password=%s',[password]);
+    Result :=Result +Format(';Initial Catalog=%s',[databasename]);
 end;
 
-class function TADOConnection.NewADOConnFromIniFile(
-  const AFileName: string): TADOConnection;
-const
-  SECTION = 'Banco de Dados Local';
+constructor ObjConnectionString.Create(const aFileName: string);
 var
-  M: TMemIniFile ;
+  I: IMemIniFile ;
 begin
-    Result :=nil;
-    if TFile.Exists(AFileName) then
+    if TFile.Exists(aFileName) then
     begin
-        Result :=TADOConnection.Create(nil);
-        M :=TMemIniFile.Create(AFileName);
-        try
-            Result.ConnectionString :='Provider=SQLOLEDB.1;Persist Security Info=True;Packet Size=4096';
-            Result.ConnectionString :=Result.ConnectionString +';Workstation ID=' +M.ReadString(SECTION,'Servidor','');
-            Result.ConnectionString :=Result.ConnectionString +';Data Source='    +M.ReadString(SECTION,'Servidor','');
-            Result.ConnectionString :=Result.ConnectionString +';User ID='        +M.ReadString(SECTION,'Usuario','');
-            Result.ConnectionString :=Result.ConnectionString +';Password='       +DesencriptarVar(M.ReadString(SECTION,'Senha',''));
-            Result.ConnectionString :=Result.ConnectionString +';Initial Catalog='+M.ReadString(SECTION,'Banco','');
-            Result.LoginPrompt:=False;
-            Result.KeepConnection :=True;
-        finally
-            M.Free ;
-        end;
+        I :=TCMemIniFile.New(aFileName);
+        I.Section :='Banco de Dados Local';
+        provider  :=I.ValStr('Provider');
+        servername:=I.ValStr('Servidor');
+        username  :=I.ValStr('Usuario');
+        password  :=DesencriptarVar(I.ValStr('Senha'));
+        databasename :=I.ValStr('Banco') ;
+    end
+    else
+        raise Exception.CreateFmt('Arquivo "%s" não encontrado!',[aFileName]);
+end;
+
+procedure ObjConnectionString.doInitVars;
+var
+  Q: TADOQuery ;
+  S: string;
+  E,P: Integer;
+begin
+    m_Date :=0;
+    m_LevelComp :=80;
+
+    //
+    //
+    Q :=TADOQuery.NewADOQuery(Self.Build) ;
+    try
+        Q.AddCmd('declare @dt_sys datetime; set @dt_sys =getdate();');
+        Q.AddCmd('declare @pro_ver sysname; set @pro_ver=%s;',[Q.FStr('ProductVersion')]);
+        Q.AddCmd('select @dt_sys as sys_date                ');
+        Q.AddCmd('  ,serverproperty(@pro_ver) as sys_prover ');
+        Q.Open;
+        m_Date :=Q.Field('sys_date').AsDateTime ;
+        S :=Q.Field('sys_prover').AsString;
+    finally
+        Q.Free ;
     end;
-end;}
+
+    //
+    // ler product (ms sql) version
+    P :=Pos('.', S);
+    if P > 0 then
+    begin
+        S :=Copy(S, 1, P-1);
+        Val(S, m_LevelComp, E);
+    end;
+end;
 
 
 {$REGION 'TMemIniFile'}
@@ -701,7 +797,7 @@ var
   arq_str: TFileStream ;
 begin
 
-    Q :=TADOQuery.NewADOQuery();
+    Q :=TADOQuery.NewADOQuery(False);
     try
       Q.AddCmd('declare @codfil smallint; set @codfil=%d;',[codfil]);
 
@@ -952,7 +1048,7 @@ class function TADOQuery.Exists(const sql_dml: string): Boolean;
 var
   Q: TADOQuery;
 begin
-    Q :=TADOQuery.NewADOQuery();
+    Q :=TADOQuery.NewADOQuery(False);
     try
         Q.AddCmd(sql_dml);
         Q.Open;
@@ -979,7 +1075,7 @@ var
   E: Integer;
 begin
     Result :=0;
-    Q :=TADOQuery.NewADOQuery();
+    Q :=TADOQuery.NewADOQuery(False);
     try
         Q.AddCmd('declare @pro_ver sysname; set @pro_ver =%s',[Q.FStr('ProductVersion')]);
         Q.AddCmd('select serverproperty(@pro_ver) as pro_ver');
@@ -1005,7 +1101,7 @@ var
   Q: TADOQuery;
 begin
 
-    Q :=TADOQuery.NewADOQuery();
+    Q :=TADOQuery.NewADOQuery(False);
     try
         Q.AddCmd('select getdate() as dh_sistem');
         Q.Open;
@@ -1023,7 +1119,7 @@ class function TADOQuery.getHost(out host_id, host_nm: string): Boolean;
 var
   Q: TADOQuery;
 begin
-    Q :=TADOQuery.NewADOQuery();
+    Q :=TADOQuery.NewADOQuery(False);
     try
         Q.AddCmd('select host_id() as host_id, host_name() as host_nm');
         try
@@ -1040,7 +1136,7 @@ class function TADOQuery.getNewID: string;
 var
   Q: TADOQuery;
 begin
-    Q :=TADOQuery.NewADOQuery();
+    Q :=TADOQuery.NewADOQuery(False);
     try
         Q.AddCmd('select newid() as terminal_id');
         try
@@ -1056,7 +1152,7 @@ class function TADOQuery.getVersion: string;
 var
   Q: TADOQuery;
 begin
-    Q :=TADOQuery.NewADOQuery();
+    Q :=TADOQuery.NewADOQuery(False);
     try
         Q.AddCmd('select @@version as sql_ver');
         try
@@ -1072,7 +1168,7 @@ class function TADOQuery.ident_current(const table_name: string): Integer;
 var
   Q: TADOQuery;
 begin
-    Q :=TADOQuery.NewADOQuery();
+    Q :=TADOQuery.NewADOQuery(False);
     try
         Q.AddCmd('select ident_current(%s) as ident',[Q.FStr(table_name)]);
         try
@@ -1082,6 +1178,21 @@ begin
     finally
         Q.Free ;
     end;
+end;
+
+constructor TADOQuery.NewADOQuery(aConnStr: WideString);
+begin
+    inherited Create(nil);
+    Self.ConnectionString :=aConnStr;
+    Self.CursorLocation :=clUseServer;
+    Self.LockType :=ltReadOnly ;
+    Self.CursorType :=ctOpenForwardOnly;
+    Self.ParamCheck :=False;
+//    Self.SetUniDirectional(False);
+    Self.BeforeOpen :=OnBeforeOpen;
+    Self.AfterOpen :=OnAfterOpen;
+    Self.m_TimeBeforeOpen :=0;
+    Self.m_TimeAfterOpen :=0;
 end;
 
 constructor TADOQuery.NewADOQuery(const aParamCheck: Boolean
@@ -1197,6 +1308,21 @@ begin
       ftString: Result.Size :=Length(VarToStr(AValue)) ;
     end;
     Result.Value :=AValue ;
+end;
+
+constructor TADOStoredProc.NewADOStoredProc(const aConnStr,
+  aStoredProcName: string);
+begin
+    inherited Create(nil);
+    Self.ConnectionString :=WideString(aConnStr) ;
+    Self.ParamCheck :=False;
+    Self.SetUniDirectional(True);
+    Self.ProcedureName :=WideString(aStoredProcName);
+    Self.Parameters.CreateParameter('@ret_cod',
+                                    ftInteger,
+                                    pdReturnValue,
+                                    0,
+                                    Null) ;
 end;
 
 constructor TADOStoredProc.NewADOStoredProc(const AStoredProcName: string;
@@ -1437,6 +1563,14 @@ function TADOCommand.FStr(const Value: string): string;
 begin
     Result :=QuotedStr(Value)
     ;
+end;
+
+constructor TADOCommand.NewADOCommand(const aConnStr: WideString);
+begin
+    inherited Create(nil);
+    Self.ConnectionString :=aConnStr;
+    Self.ParamCheck :=False;
+    _columns:=TList<TCColumnDef>.Create;
 end;
 
 constructor TADOCommand.NewADOCommand(const AParamCheck: Boolean);
@@ -1729,7 +1863,7 @@ var
   Q: TADOQuery ;
 begin
     //
-    Q :=TADOQuery.NewADOQuery();
+    Q :=TADOQuery.NewADOQuery(False);
     try
       Q.AddCmd('declare @ser_id varchar(50); set @ser_id =%s;   ',[Q.FStr(Self.m_ident)]) ;
       Q.AddCmd('select *from genserial where ser_ident =@ser_id ');

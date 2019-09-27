@@ -112,8 +112,8 @@ type
   end;
 
   TCParametroList = class (TObjectList<TCParametro>)
-  private
   public
+    class function New(): TCParametroList;
     function AddNew(const AParamName: string): TCParametro ;
     function IndexOf(const AParamName: string): TCParametro; overload ;
     function Load(const aIdent, aCatego: string): Boolean;
@@ -188,7 +188,10 @@ begin
     if AParamName <> '' then
         Self._id :=AParamName ;
     //
-    Q :=TADOQuery.NewADOQuery();
+    if uadodb.ConnectionString <> '' then
+        Q :=TADOQuery.NewADOQuery(uadodb.ConnectionString)
+    else
+        Q :=TADOQuery.NewADOQuery(False);
     try
         Q.AddCmd('declare @prm_ident varchar(50); set @prm_ident = %s ',[Q.FStr(Self._id)]) ;
         Q.AddCmd('select *from parametro                              ');
@@ -219,7 +222,10 @@ var
   P: Integer;
   cat: string;
 begin
-    C :=TADOCommand.NewADOCommand ;
+    if uadodb.ConnectionString <> '' then
+        C :=TADOCommand.NewADOCommand(uadodb.ConnectionString)
+    else
+        C :=TADOCommand.NewADOCommand(False) ;
     try
         C.AddColumn('prm_valtyp', ftSmallint, Ord(Self._xtype)) ;
         case Self._xtype of
@@ -316,7 +322,10 @@ var
   P: Integer;
   cat: string;
 begin
-    C :=TADOCommand.NewADOCommand ;
+    if uadodb.ConnectionString <> '' then
+        C :=TADOCommand.NewADOCommand(uadodb.ConnectionString)
+    else
+        C :=TADOCommand.NewADOCommand(False) ;
     try
         C.AddCmd('declare @prm_ident varchar(50); set @prm_ident =%s',[C.FStr(Self._id)]);
         C.AddCmd('declare @prm_valtyp smallint; set @prm_valtyp =%d',[Ord(Self._xtype)]);
@@ -427,6 +436,7 @@ begin
     Add(Result) ;
 end;
 
+
 class function TCParametroList.getCatList: TCParametroList;
 var
   Q: TADOQuery ;
@@ -436,7 +446,10 @@ begin
     Result :=TCParametroList.Create ;
 
     //
-    Q :=TADOQuery.NewADOQuery();
+    if uadodb.ConnectionString <> '' then
+        Q :=TADOQuery.NewADOQuery(uadodb.ConnectionString)
+    else
+        Q :=TADOQuery.NewADOQuery(False);
     try
         Q.AddCmd('select               ');
         Q.AddCmd('  prm_catego         ');
@@ -484,7 +497,10 @@ begin
     Self.Clear ;
     //
     // parametros
-    Q :=TADOQuery.NewADOQuery();
+    if uadodb.ConnectionString <> '' then
+        Q :=TADOQuery.NewADOQuery(uadodb.ConnectionString)
+    else
+        Q :=TADOQuery.NewADOQuery(False);
     try
       Q.AddCmd('declare @identi varchar(50); set @identi = %s ',[Q.FStr(aIdent)]) ;
       Q.AddCmd('declare @catego varchar(30); set @catego = %s ',[Q.FStr(aCatego)]) ;
@@ -557,7 +573,11 @@ begin
     end;
 end;
 
+class function TCParametroList.New(): TCParametroList;
+begin
+    Result :=TCParametroList.Create(True);
 
+end;
 
 { TRegSistem }
 

@@ -130,7 +130,7 @@ var
   I: TpcnTipoEmissao;
   tip_emi: TStrings ;
 begin
-    Q :=TADOQuery.NewADOQuery() ;
+    Q :=TADOQuery.NewADOQuery(False) ;
     try
       //
       // ler old numeros
