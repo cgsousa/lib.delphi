@@ -410,7 +410,7 @@ function getConnCompLevel(): SmallInt;
 implementation
 
 uses ActiveX, Math, StrUtils, DateUtils, IOUtils, Variants,
-  uini;
+  ustr, uini;
 
 
 function DesencriptarVar(Texto: String):String;
@@ -1916,6 +1916,7 @@ end;
 initialization
     ConnectionADO :=nil  ;
     GetLocaleFormatSettings(0, LocalFormatSettings);
+    StrU.Create(LocalFormatSettings);
 
 finalization
     ConnectionADO :=nil  ;

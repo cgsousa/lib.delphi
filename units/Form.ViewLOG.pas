@@ -14,6 +14,7 @@ type
     procedure addStr(const aStr: string; const aColor: TColor =clDefault);
     procedure clear ;
     procedure showLOG(const aModal: Boolean);
+    procedure hideLOG ;
   end;
 
   Tfrm_ViewLOG = class(TBaseForm, IViewLOG)
@@ -32,7 +33,7 @@ type
     procedure addStr(const aStr: string; const aColor: TColor =clDefault);
     procedure clear ;
     procedure showLOG(const aModal: Boolean) ;
-
+    procedure hideLOG ;
     class function New(const aTitle: string;
       const aHeight: Integer =240;
       const aWidth: Integer =320): IViewLOG;
@@ -103,6 +104,11 @@ begin
     m_JvRich.ReadOnly :=True ;
     m_JvRich.ScrollBars :=ssVertical ;
     m_JvRich.Clear ;
+end;
+
+procedure Tfrm_ViewLOG.hideLOG;
+begin
+    Self.Close ;
 end;
 
 class function Tfrm_ViewLOG.New(const aTitle: string;

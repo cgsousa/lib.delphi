@@ -344,9 +344,9 @@ begin
         C.AddCmd('declare @prm_catego varchar(30); set @prm_catego =%s',[C.FStr(Self._catego)]);
 
         if Self._descri <> '' then
-            C.AddCmd('declare @prm_descri varchar(50); set @prm_descri =%s',[C.FStr(Self._descri)])
+            C.AddCmd('declare @prm_descri varchar(100); set @prm_descri =%s',[C.FStr(Self._descri)])
         else
-            C.AddCmd('declare @prm_descri varchar(50); set @prm_descri =null');
+            C.AddCmd('declare @prm_descri varchar(100); set @prm_descri =null');
 
         if Self._comple <> '' then
             C.AddCmd('declare @prm_comple varchar(125); set @prm_comple =%s',[C.FStr(Self._comple)])
