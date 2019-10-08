@@ -146,6 +146,7 @@ type
   public
     function getNumber(const aStr: string): string;
     function isNumber(const aStr: string): Boolean;
+    function Extract(var aStr: string; const aChr: Char =';'): string ;
   end;
 
 {$ENDREGION}
@@ -216,6 +217,22 @@ function UtilStr.Dupe(const aCount: Integer; const aStr: string): string;
 begin
     Result :=DupeString(aStr, aCount) ;
 
+end;
+
+function UtilStr.Extract(var aStr: string; const aChr: Char): string;
+var
+  P: Integer;
+begin
+    P :=Pos(aChr, aStr) ;
+    if P > 0 then
+    begin
+        Result :=Copy(aStr, 1, P-1);
+        aStr :=Copy(aStr, P+1, Length(aStr));
+    end
+    else begin
+        Result :=aStr ;
+        aStr :='';
+    end;
 end;
 
 function UtilStr.fCNPJ(const aStr: string): string;

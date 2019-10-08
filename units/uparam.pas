@@ -177,7 +177,6 @@ begin
 end;
 
 
-
 { TCParametro }
 
 function TCParametro.Load(const AParamName: string): Boolean;

@@ -380,6 +380,7 @@ type // thread-safe
     property date: TDateTime read m_Date;
     property levelComp: Word read m_LevelComp ;
     constructor Create(const aFileName: string);
+    procedure LoadFromStr(const aConnectionString: string) ;
     function Build: string ;
   End;
 
@@ -391,6 +392,7 @@ var
   Empresa: TCEmpresa ;
   ConnectionString: String = '';
   dbConnectionString: ObjConnectionString;
+
 
 function DesencriptarVar(Texto: String):String;
 
@@ -404,7 +406,7 @@ function AdoDisconnect: Boolean;
 //
 // funcs Conn
 function getConnDatetime(): TDateTime ;
-function getConnCompLevel(): SmallInt;
+function getConnCompLevel(): Word;
 
 
 implementation
@@ -412,6 +414,8 @@ implementation
 uses ActiveX, Math, StrUtils, DateUtils, IOUtils, Variants,
   ustr, uini;
 
+var
+  dbConnCompLevel: Word;
 
 function DesencriptarVar(Texto: String):String;
 var w : string;
@@ -458,7 +462,10 @@ var
   Q: TADOQuery ;
 begin
     Result :=0;
-    Q :=TADOQuery.NewADOQuery(uadodb.ConnectionString) ;
+    if uadodb.ConnectionString <> '' then
+        Q :=TADOQuery.NewADOQuery(uadodb.ConnectionString)
+    else
+        Q :=TADOQuery.NewADOQuery(False) ;
     try
         Q.AddCmd('select getdate() as dh_sistem');
         Q.Open;
@@ -469,31 +476,42 @@ begin
     end;
 end;
 
-function getConnCompLevel(): SmallInt;
+function getConnCompLevel(): Word;
 var
   Q: TADOQuery;
   S: string;
   E: Integer;
 begin
-    Result :=0;
-    Q :=TADOQuery.NewADOQuery(uadodb.ConnectionString) ;
-    try
-        Q.AddCmd('declare @pro_ver sysname; set @pro_ver =%s',[Q.FStr('ProductVersion')]);
-        Q.AddCmd('select serverproperty(@pro_ver) as pro_ver');
+    if dbConnCompLevel > 0 then
+        Result :=dbConnCompLevel
+    else begin
+        Result :=0;
+        if uadodb.ConnectionString <> '' then
+            Q :=TADOQuery.NewADOQuery(uadodb.ConnectionString)
+        else
+            Q :=TADOQuery.NewADOQuery(False) ;
+
         try
-            Q.Open ;
-            S :=Q.Field('pro_ver').AsString;
-        except Result :=0 end;
-    finally
-        Q.Free ;
-    end;
-    //
-    // trata retorno
-    Result :=Pos('.', S);
-    if Result > 0 then
-    begin
-        S :=Copy(S, 1, Result-1);
-        Val(S, Result, E);
+            Q.AddCmd('declare @pro_ver sysname; set @pro_ver =%s',[Q.FStr('ProductVersion')]);
+            Q.AddCmd('select serverproperty(@pro_ver) as pro_ver');
+            try
+                Q.Open ;
+                S :=Q.Field('pro_ver').AsString;
+            except Result :=0 end;
+        finally
+            Q.Free ;
+        end;
+        //
+        // trata retorno
+        Result :=Pos('.', S);
+        if Result > 0 then
+        begin
+            S :=Copy(S, 1, Result-1);
+            Val(S, Result, E);
+        end
+        else
+            Result :=0 ;
+        dbConnCompLevel :=Result;
     end;
 end;
 
@@ -620,6 +638,12 @@ begin
     end;
 end;
 
+procedure ObjConnectionString.LoadFromStr(const aConnectionString: string);
+var
+  P: Integer;
+begin
+    //provider :=StrU.Extract()
+end;
 
 {$REGION 'TMemIniFile'}
 
