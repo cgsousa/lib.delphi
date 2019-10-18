@@ -21,6 +21,13 @@ type
     procedure setIndexItem(const Index: Integer);
 //    procedure DoPaintAlternateRowColor();
     procedure SetFocusedSelected(const Value: PVirtualNode);
+
+  protected
+    { Protected declarations format Grid }
+    procedure OnBeforeItemErase(Sender: TBaseVirtualTree;
+      TargetCanvas: TCanvas; Node: PVirtualNode; ItemRect: TRect;
+      var ItemColor: TColor; var EraseAction: TItemEraseAction);
+
   public
     property IndexItem: Integer read getIndexItem write setIndexItem ;
     property AlternateRowColor: TColor read _alternateRowColor write _alternateRowColor;
@@ -78,6 +85,17 @@ begin
     P :=Self.GetFirstSelected() ;
     if P <> nil then  Result :=P.Index
     else              Result :=-1;
+end;
+
+procedure TVirtualStringTree.OnBeforeItemErase(Sender: TBaseVirtualTree;
+  TargetCanvas: TCanvas; Node: PVirtualNode; ItemRect: TRect;
+  var ItemColor: TColor; var EraseAction: TItemEraseAction);
+begin
+    if vsDeleting in Node.States then
+        ItemColor := clBtnFace
+    else
+        ItemColor :=clWindow;
+    EraseAction := eaColor;
 end;
 
 procedure TVirtualStringTree.SetFocusedSelected(const Value: PVirtualNode);

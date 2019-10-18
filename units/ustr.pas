@@ -84,31 +84,9 @@ type
     function Zeros(const aInt: Int64 ; const aLen: Integer): string; overload;
     function Zeros(const aStr: String; const aLen: Integer): string; overload;
 
-    //function dtoS(const aDate: TDateTime): string ;
-    function dhToS(const aDat: TDateTime): string;
-
   public
     //
     // formatings
-    function fInt(const aVal: Extended): string; overload ;
-    function fInt(const aVal: Extended;
-      const aCaption: string; const aComp: Word): string; overload ;
-
-    function fCur(const aVal: Currency): string; overload ;
-    function fCur(const aVal: Currency;
-      const aCaption: string; const aComp: Word): string; overload ;
-
-    function fFlt(const aVal: Extended;
-      const aPrecision: Word =15; const aDigits: Word=2): string; overload ;
-    function fFlt(const aVal: Extended;
-      const aCaption: string; const aComp: Word): string; overload ;
-
-    function fDt(const aDt: TDateTime): string;
-    function fDtTm(const aDtTm: TDateTime; const aFormat: string =''): string;
-
-    function fTm(const aTm: TDateTime): string; overload ;
-    function fTm(const aTm: TDateTime;
-      const aCaption: string; const aComp: Word): string; overload ;
 
     function fSQL(const aStr: string): string ;
     function fCNPJ(const aStr: string): string ;
@@ -117,8 +95,8 @@ type
 
     //
     // Fmt Int
-    function FmtInt(const aValue: Int64): string; overload ;
-    function FmtInt(const aValue: Int64;
+    function FmtInt(const aValue: Extended): string; overload ;
+    function FmtInt(const aValue: Extended;
       const aCaption: string; const aComp: Word): string; overload ;
 
     //
@@ -142,11 +120,15 @@ type
 
     //
     // format geral
-    function Fmt(const aFormat: string; const Args: array of const): string; overload ;
+    function Fmt(const aFormat: string; const Args: array of const): string;
+
+    procedure setThousandSeparator(const aSep: Char);
+    procedure setDecimalSeparator(const aSep: Char) ;
   public
     function getNumber(const aStr: string): string;
     function isNumber(const aStr: string): Boolean;
     function Extract(var aStr: string; const aChr: Char =';'): string ;
+    //function split(var aStr: string; const aChr: Char =';'): string ;
   end;
 
 {$ENDREGION}
@@ -207,12 +189,6 @@ begin
     m_FormatSettings.TwoDigitYearCenturyWindow :=aFormatSettings.TwoDigitYearCenturyWindow ;
 end;
 
-function UtilStr.dhToS(const aDat: TDateTime): string;
-begin
-    Result :=FormatDateTime('dd/mm/yyyy hh:nn', aDat) ;
-
-end;
-
 function UtilStr.Dupe(const aCount: Integer; const aStr: string): string;
 begin
     Result :=DupeString(aStr, aCount) ;
@@ -247,79 +223,6 @@ begin
 
 end;
 
-function UtilStr.fCur(const aVal: Currency): string ;
-begin
-    //
-    //Result :=Trim(Format('%15.2m',[aVal]))
-    Result :=FloatToStrF(aVal, ffCurrency, 15, 2, FormatSettings);
-end;
-
-function UtilStr.fCur(const aVal: Currency;
-  const aCaption: string; const aComp: Word): string;
-var
-  L: Word;
-begin
-    Result :=Self.fCur(aVal);
-    L :=Self.Len(aCaption) + Self.Len(Result) ;
-    if aComp > L then
-        Result :=aCaption +Self.Dupe(aComp -L) +Result
-    else
-        Result :=aCaption +Result;
-end;
-
-function UtilStr.fDt(const aDt: TDateTime): string;
-begin
-    Result :=FormatDateTime('DD/MM/YYYY', aDt, FormatSettings);
-end;
-
-function UtilStr.fDtTm(const aDtTm: TDateTime; const aFormat: string): string;
-begin
-    if aFormat = '' then
-        Result :='DD/MM/YYYY hh:nn:ss';
-    Result :=FormatDateTime(aFormat, aDtTm, FormatSettings);
-end;
-
-function UtilStr.fFlt(const aVal: Extended;
-  const aPrecision, aDigits: Word): string;
-begin
-    Result :=FloatToStrF(aVal, ffNumber, aPrecision, aDigits, FormatSettings);
-
-end;
-
-function UtilStr.fFlt(const aVal: Extended;
-  const aCaption: string; const aComp: Word): string;
-var
-  L: Word;
-begin
-    Result :=Self.fFlt(aVal) ;
-    L :=Self.Len(aCaption) + Self.Len(Result) ;
-    if aComp > L then
-        Result :=aCaption +Self.Dupe(aComp -L) +Result
-    else
-        Result :=aCaption +Result;
-end;
-
-function UtilStr.fInt(const aVal: Extended): string ;
-begin
-    if aVal > 999 then
-        Result :=FormatFloat('#,##0', aVal, FormatSettings)
-    else
-        Result :=IntToStr(Trunc(aVal));
-end;
-
-function UtilStr.fInt(const aVal: Extended; const aCaption: string;
-  const aComp: Word): string;
-var
-  L: Word;
-begin
-    Result :=Self.fInt(aVal) ;
-    L :=Self.Len(aCaption) + Self.Len(Result) ;
-    if aComp > L then
-        Result :=aCaption +Self.Dupe(aComp -L) +Result
-    else
-        Result :=aCaption +Result;
-end;
-
 function UtilStr.fMsk(const aStr, aEditMask: string): string;
 begin
     Result :=FormatMaskText(aEditMask, aStr);
@@ -332,26 +235,6 @@ begin
         Result :=QuotedStr(aStr)
     else
         Result :='NULL';
-end;
-
-function UtilStr.fTm(const aTm: TDateTime;
-  const aCaption: string; const aComp: Word): string;
-var
-  L: Word;
-begin
-    Result :=Self.fTm(aTm) ;
-    L :=Self.Len(aCaption) + Self.Len(Result) ;
-    if aComp > L then
-        Result :=aCaption +Self.Dupe(aComp -L) +Result
-    else
-        Result :=aCaption +Result;
-end;
-
-function UtilStr.fTm(const aTm: TDateTime): string;
-begin
-    //
-    //
-    DateTimeToString(Result, 'hh:nn:ss', aTm, FormatSettings);
 end;
 
 function UtilStr.getFormatSettings: TFormatSettings;
@@ -502,6 +385,16 @@ begin
 
 end;
 
+procedure UtilStr.setDecimalSeparator(const aSep: Char);
+begin
+    m_FormatSettings.DecimalSeparator :=aSep;
+end;
+
+procedure UtilStr.setThousandSeparator(const aSep: Char);
+begin
+    m_FormatSettings.ThousandSeparator :=aSep;
+end;
+
 function UtilStr.Stuff(const aStr, aSubStr: string; const aStart,
   aLen: Cardinal): string;
 begin
@@ -554,7 +447,7 @@ begin
     // result datetime format
     // Result :=FormatDateTime(F, aValue, FormatSettings);
     // Result :=DateTimeToStr()
-    DateTimeToString(Result, aFormat, aValue, FormatSettings);
+    DateTimeToString(Result, aFormat, aValue, FormatSettings) ;
 end;
 
 function UtilStr.FmtDtTm(const aValue: TDateTime; const aCaption: string;
@@ -562,7 +455,10 @@ function UtilStr.FmtDtTm(const aValue: TDateTime; const aCaption: string;
 var
   L: Word;
 begin
-    Result :=Self.FmtDtTm(aValue) ;
+    if Trunc(aValue) > 0 then
+        Result :=Self.FmtDtTm(aValue)
+    else
+        Result :=Self.FmtDtTm(aValue, FormatSettings.LongTimeFormat) ;
     L :=Self.Len(aCaption) + Self.Len(Result) ;
     if aComp > L then
         Result :=aCaption +Self.Dupe(aComp -L) +Result
@@ -592,16 +488,16 @@ begin
         Result :=aCaption +Result;
 end;
 
-function UtilStr.FmtInt(const aValue: Int64): string;
+function UtilStr.FmtInt(const aValue: Extended): string;
 begin
-    if aValue > 999 then
+//    if aValue > 999 then
 //        Result :=Format(aValue, ffNumber, 15, 0, FormatSettings)
         Result :=FloatToStrF(aValue, ffNumber, 15, 0, FormatSettings)
-    else
-        Result :=IntToStr(aValue);
+//    else
+//        Result :=IntToStr(aValue);
 end;
 
-function UtilStr.FmtInt(const aValue: Int64; const aCaption: string;
+function UtilStr.FmtInt(const aValue: Extended; const aCaption: string;
   const aComp: Word): string;
 var
   L: Word;
