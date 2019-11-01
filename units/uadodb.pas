@@ -365,7 +365,7 @@ type
 
 
 type // thread-safe
-  ObjConnectionString =Object
+  ObjConnectionString =object
   strict private
     provider: string ;
     servername: string;
@@ -396,12 +396,10 @@ var
 
 function DesencriptarVar(Texto: String):String;
 
-procedure buildConnectionStringFromIniFile(const aFileName: string);
+function buildConnectionStringFromIniFile(const aFileName: string): String;
 
 function NewADOConnFromIniFile(const AFileName: string): ADODB.TADOConnection ;
 
-function AdoConnect(const aConnectName: string): Boolean ;
-function AdoDisconnect: Boolean;
 
 //
 // funcs Conn
@@ -426,34 +424,89 @@ w := w + chr( Ord(texto[i]) - i - 19 );
 result:= w;
 end;
 
-
-procedure buildConnectionStringFromIniFile(const aFileName: string);
+function buildConnectionStringFromIniFile(const aFileName: string): String;
+//  const aTrustedConnection: Boolean;
+//  const aDataTypeCompatibility:Word);
 var
   I: IMemIniFile ;
-  provider,srvname,user,pass: string ;
+  provider,server,user,pass,database: string ;
+  trustedConnection,mars: Boolean;
+  dtCompatibility: Word;
 begin
   //
-    ConnectionString :='Persist Security Info=True;Packet Size=4096';
     if TFile.Exists(aFileName) then
     begin
+        Result :='Persist Security Info=false;Packet Size=4096';
         I :=TCMemIniFile.New(aFileName);
         I.Section :='Banco de Dados Local';
-        provider :=I.ValStr('Provider');
-        srvname  :=I.ValStr('Servidor');
+
+        provider :=UpperCase(I.ValStr('Provider'));
+        server  :=I.ValStr('Servidor');
         user :=I.ValStr('Usuario');
         pass:=DesencriptarVar(I.ValStr('Senha'));
-        if provider <> '' then
+        database :=I.ValStr('Banco');
+        trustedConnection:=I.ValBoo('TrustedConnection');
+        mars :=I.ValBoo('MARS');
+
+        if provider = '' then
         begin
-           ConnectionString :=ConnectionString +Format(';Provider=%s',[provider]);
-        end
-        else begin
-            ConnectionString :=ConnectionString +';Provider=SQLOLEDB.1';
+            provider :='sqloledb.1';
         end;
-        ConnectionString :=ConnectionString +Format(';Workstation ID=%s',[srvname]);
-        ConnectionString :=ConnectionString +Format(';Data Source=%s',[srvname]);
-        ConnectionString :=ConnectionString +Format(';User ID=%s',[user]);
-        ConnectionString :=ConnectionString +Format(';Password=%s',[pass]);
-        ConnectionString :=ConnectionString +Format(';Initial Catalog=%s',[I.ValStr('Banco')]);
+
+        //
+        // ms sql > 2000
+        if Pos('SQLNCLI',provider) > 0 then
+        begin
+
+            dtCompatibility :=I.ValInt('DataTypeCompatibility',80);
+
+            Result :=Result +Format(';Provider=%s',[provider]);
+            Result :=Result +Format(';Server=%s',[server]);
+            Result :=Result +Format(';Database=%s',[database]);
+            //
+            // Trusted connection
+            if trustedConnection then
+                Result :=Result +';Trusted_Connection=yes'
+            //
+            // Standard security
+            else begin
+                Result :=Result +Format(';Uid=%s',[user]);
+                Result :=Result +Format(';Pwd=%s',[pass]);
+            end;
+            //
+            // Enable MARS (Multiple Active Result Sets)
+            if mars then
+                Result :=Result +';MARS Connection=True';
+            //
+            // DataTypeCompatibility
+            if dtCompatibility > 0 then
+                Result :=Result +Format(';DataTypeCompatibility=%d',[dtCompatibility]);
+        end
+        //
+        // ms sql <= 2000
+        else begin
+            Result :=Result +Format(';Provider=%s',[provider]);
+            Result :=Result +Format(';Workstation ID=%s',[server]);
+            Result :=Result +Format(';Data Source=%s',[server]);
+            Result :=Result +Format(';Initial Catalog=%s',[database]);
+            //
+            // Trusted connection
+            if trustedConnection then
+                Result :=Result +';Integrated Security=SSPI'
+            //
+            // Standard security
+            else begin
+                Result :=Result +Format(';User ID=%s',[user]);
+                Result :=Result +Format(';Password=%s',[pass]);
+            end;
+            //
+            // Enable MARS (Multiple Active Result Sets)
+            if mars then
+                Result :=Result +';MultipleActiveResultSets=True';
+        end;
+        //
+        // finaliza string
+        Result :=Result +';';
     end;
 end;
 
@@ -512,30 +565,6 @@ begin
         else
             Result :=0 ;
         dbConnCompLevel :=Result;
-    end;
-end;
-
-function AdoConnect(const aConnectName: string): Boolean ;
-begin
-    Result :=True ;
-    if ConnectionADO = nil then
-    begin
-        ConnectionADO :=NewADOConnFromIniFile(aConnectName) ;
-    end ;
-    try
-        ConnectionADO.Connected :=True ;
-    except
-        Result :=False ;
-    end;
-end;
-
-function AdoDisconnect: Boolean ;
-begin
-    Result :=True ;
-    try
-        ConnectionADO.Close ;
-    except
-        Result :=False ;
     end;
 end;
 
@@ -1212,9 +1241,9 @@ begin
     Self.LockType :=ltReadOnly ;
     Self.CursorType :=ctOpenForwardOnly;
     Self.ParamCheck :=False;
-//    Self.SetUniDirectional(False);
     Self.BeforeOpen :=OnBeforeOpen;
     Self.AfterOpen :=OnAfterOpen;
+//    Self.CommandTimeout :=30;
     Self.m_TimeBeforeOpen :=0;
     Self.m_TimeAfterOpen :=0;
 end;

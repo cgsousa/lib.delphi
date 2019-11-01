@@ -447,7 +447,10 @@ begin
     // result datetime format
     // Result :=FormatDateTime(F, aValue, FormatSettings);
     // Result :=DateTimeToStr()
-    DateTimeToString(Result, aFormat, aValue, FormatSettings) ;
+    if Trunc(aValue) > 0 then
+        DateTimeToString(Result, aFormat, aValue, FormatSettings)
+    else
+        DateTimeToString(Result, FormatSettings.LongTimeFormat, aValue, FormatSettings) ;
 end;
 
 function UtilStr.FmtDtTm(const aValue: TDateTime; const aCaption: string;
@@ -455,10 +458,11 @@ function UtilStr.FmtDtTm(const aValue: TDateTime; const aCaption: string;
 var
   L: Word;
 begin
-    if Trunc(aValue) > 0 then
-        Result :=Self.FmtDtTm(aValue)
-    else
-        Result :=Self.FmtDtTm(aValue, FormatSettings.LongTimeFormat) ;
+    //
+    // format date/time
+    Result :=Self.FmtDtTm(aValue) ;
+    //
+    // adic. o caption
     L :=Self.Len(aCaption) + Self.Len(Result) ;
     if aComp > L then
         Result :=aCaption +Self.Dupe(aComp -L) +Result
@@ -490,11 +494,11 @@ end;
 
 function UtilStr.FmtInt(const aValue: Extended): string;
 begin
-//    if aValue > 999 then
+    if aValue > 999 then
 //        Result :=Format(aValue, ffNumber, 15, 0, FormatSettings)
         Result :=FloatToStrF(aValue, ffNumber, 15, 0, FormatSettings)
-//    else
-//        Result :=IntToStr(aValue);
+    else
+        Result :=IntToStr(Trunc(aValue));
 end;
 
 function UtilStr.FmtInt(const aValue: Extended; const aCaption: string;
