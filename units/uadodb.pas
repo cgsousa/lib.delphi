@@ -367,20 +367,24 @@ type
 type // thread-safe
   ObjConnectionString =object
   strict private
-    provider: string ;
-    servername: string;
-    username: string ;
-    password: string ;
-    databasename: string;
+    m_provider: string ;
+    m_server: string;
+    m_uid: string ;
+    m_pwd: string ;
+    m_database: string;
+    m_trustedConnection: Boolean;
+    m_MARS: Boolean;
+    m_dtCompatibility: Word;
   private
     m_Date: TDateTime ;
     m_LevelComp: Word ;
     procedure doInitVars ;
   public
-    property date: TDateTime read m_Date;
-    property levelComp: Word read m_LevelComp ;
+    property Server: string read m_server;
+    property UserID: string read m_uid;
+    property Passwd: string read m_pwd;
+    property Database: string read m_database;
     constructor Create(const aFileName: string);
-    procedure LoadFromStr(const aConnectionString: string) ;
     function Build: string ;
   End;
 
@@ -601,18 +605,57 @@ end;
 function ObjConnectionString.Build: string;
 begin
     Result :='Persist Security Info=True;Packet Size=4096';
-    if provider <> '' then
+    //
+    // ms sql > 2000
+    if Pos('SQLNCLI',m_provider) > 0 then
     begin
-       Result :=Result +Format(';Provider=%s',[provider]);
+        Result :=Result +Format(';Provider=%s',[m_provider]);
+        Result :=Result +Format(';Server=%s',[m_server]);
+        Result :=Result +Format(';Database=%s',[m_database]);
+        //
+        // Trusted connection
+        if m_trustedConnection then
+            Result :=Result +';Trusted_Connection=yes'
+        //
+        // Standard security
+        else begin
+            Result :=Result +Format(';Uid=%s',[m_uid]);
+            Result :=Result +Format(';Pwd=%s',[m_pwd]);
+        end;
+        //
+        // Enable MARS (Multiple Active Result Sets)
+        if m_MARS then
+            Result :=Result +';MARS Connection=True';
+        //
+        // DataTypeCompatibility
+        if m_dtCompatibility > 0 then
+            Result :=Result +Format(';DataTypeCompatibility=%d',[m_dtCompatibility]);
     end
+    //
+    // ms sql <= 2000
     else begin
-        Result :=Result +'Provider=SQLOLEDB.1';
+        Result :=Result +Format(';Provider=%s',[m_provider]);
+        Result :=Result +Format(';Workstation ID=%s',[m_server]);
+        Result :=Result +Format(';Data Source=%s',[m_server]);
+        Result :=Result +Format(';Initial Catalog=%s',[m_database]);
+        //
+        // Trusted connection
+        if m_trustedConnection then
+            Result :=Result +';Integrated Security=SSPI'
+        //
+        // Standard security
+        else begin
+            Result :=Result +Format(';User ID=%s',[m_uid]);
+            Result :=Result +Format(';Password=%s',[m_pwd]);
+        end;
+        //
+        // Enable MARS (Multiple Active Result Sets)
+        if m_MARS then
+            Result :=Result +';MultipleActiveResultSets=True';
     end;
-    Result :=Result +Format(';Workstation ID=%s',[servername]);
-    Result :=Result +Format(';Data Source=%s',[servername]);
-    Result :=Result +Format(';User ID=%s',[username]);
-    Result :=Result +Format(';Password=%s',[password]);
-    Result :=Result +Format(';Initial Catalog=%s',[databasename]);
+    //
+    // finaliza string
+    Result :=Result +';';
 end;
 
 constructor ObjConnectionString.Create(const aFileName: string);
@@ -623,14 +666,20 @@ begin
     begin
         I :=TCMemIniFile.New(aFileName);
         I.Section :='Banco de Dados Local';
-        provider  :=I.ValStr('Provider');
-        servername:=I.ValStr('Servidor');
-        username  :=I.ValStr('Usuario');
-        password  :=DesencriptarVar(I.ValStr('Senha'));
-        databasename :=I.ValStr('Banco') ;
-    end
-    else
-        raise Exception.CreateFmt('Arquivo "%s" não encontrado!',[aFileName]);
+
+        m_provider :=UpperCase(I.ValStr('Provider'));
+        m_server  :=I.ValStr('Servidor');
+        m_uid :=I.ValStr('Usuario');
+        m_pwd:=DesencriptarVar(I.ValStr('Senha'));
+        m_database :=I.ValStr('Banco');
+        m_trustedConnection:=I.ValBoo('TrustedConnection');
+        m_MARS :=I.ValBoo('MARS');
+        m_dtCompatibility :=I.ValInt('DataTypeCompatibility',80);
+        if m_provider = '' then
+        begin
+            m_provider :='sqloledb.1';
+        end;
+    end;
 end;
 
 procedure ObjConnectionString.doInitVars;
@@ -667,12 +716,6 @@ begin
     end;
 end;
 
-procedure ObjConnectionString.LoadFromStr(const aConnectionString: string);
-var
-  P: Integer;
-begin
-    //provider :=StrU.Extract()
-end;
 
 {$REGION 'TMemIniFile'}
 

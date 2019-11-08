@@ -550,7 +550,7 @@ constructor TCThreadProcess.Create(const aCreateSuspended,
 begin
     FreeOnTerminate :=aFreeOnTerminate;
     inherited Create(aCreateSuspended);
-    m_SecBetweenRuns :=10;
+    m_SecBetweenRuns :=1;
 end;
 
 procedure TCThreadProcess.DoTerminate;
@@ -592,30 +592,31 @@ begin
             // caso aconteça algum error/except
             // garante a proxima exec.
             try
-                Inc(Count);
-        //        if Count >= SecBetweenRuns then
-        //        begin
-        //            Count :=0;
-
-                    { place your service code here }
-                    { this is where the action happens }
-                    {if Assigned(Self.m_RunProc) then
-                    begin
-                        Self.m_RunProc() ;
-                    end;}
-                    Self.RunProc ;
-
-        //        end;
-
-                //
-                // wait um sec
-                Sleep(1000);
-                Inc(m_Interval) ;
+              if SecBetweenRuns > 1 then
+              begin
+                  Inc(Count);
+                  if Count >= SecBetweenRuns then
+                  begin
+                      Count :=0;
+                      Self.RunProc ;
+                  end;
+              end
+              //
+              // run em 1s
+              else begin
+                  Self.RunProc ;
+              end;
+              //Self.RunProc ;
+              //
+              // wait um sec
+              //Sleep(1000 *SecBetweenRuns);
+              Sleep(1000);
+              Inc(m_Interval) ;
             except
-                on E:Exception do
-                begin
-                    CallOnStrProc(E.Message);
-                end;
+              on E:Exception do
+              begin
+                  CallOnStrProc(E.Message);
+              end;
             end;
         end;
     end;
