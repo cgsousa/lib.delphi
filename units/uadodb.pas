@@ -1935,7 +1935,10 @@ function TCGenSerial.nextValue: Cardinal;
 var
   sp: TADOStoredProc ;
 begin
-    sp :=TADOStoredProc.NewADOStoredProc('dbo.sp_nextval');
+    if ConnectionString <> '' then
+        sp :=TADOStoredProc.NewADOStoredProc(ConnectionString,'dbo.sp_nextval')
+    else
+        sp :=TADOStoredProc.NewADOStoredProc('dbo.sp_nextval');
     try
         //
         sp.AddParamWithValue('@ser_ident', ftString, Self.m_ident);
@@ -1959,7 +1962,10 @@ var
   Q: TADOQuery ;
 begin
     //
-    Q :=TADOQuery.NewADOQuery(False);
+    if ConnectionString <> '' then
+        Q :=TADOQuery.NewADOQuery(ConnectionString)
+    else
+        Q :=TADOQuery.NewADOQuery(False);
     try
       Q.AddCmd('declare @ser_id varchar(50); set @ser_id =%s;   ',[Q.FStr(Self.m_ident)]) ;
       Q.AddCmd('select *from genserial where ser_ident =@ser_id ');
@@ -1985,7 +1991,10 @@ procedure TCGenSerial.setValue;
 var
   sp: TADOStoredProc ;
 begin
-    sp :=TADOStoredProc.NewADOStoredProc('dbo.sp_setval');
+    if ConnectionString <> '' then
+        sp :=TADOStoredProc.NewADOStoredProc(ConnectionString,'dbo.sp_setval')
+    else
+        sp :=TADOStoredProc.NewADOStoredProc('dbo.sp_setval');
     try
         //
         // chk se existe categoria

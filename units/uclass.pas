@@ -580,6 +580,13 @@ begin
     // execute normal
     else begin
         //
+        // inicia 1a chamada
+        if SecBetweenRuns > 1 then
+        begin
+            Self.RunProc ;
+        end;
+
+        //
         // inicializa contadores
         Count :=0;
         m_Interval :=0 ;
