@@ -378,6 +378,7 @@ type // thread-safe
   private
     m_Date: TDateTime ;
     m_LevelComp: Word ;
+    m_VerProd: Word ;
     procedure doInitVars ;
   public
     property Server: string read m_server;
